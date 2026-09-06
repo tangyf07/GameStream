@@ -30,6 +30,7 @@ data/**
 bench/results/**
 !bench/results/.gitkeep
 !bench/results/*.md
+!bench/results/bench_*.json
 
 # IDE / OS
 .idea/

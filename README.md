@@ -32,7 +32,6 @@ Schema：`simulator/schemas/events.json`。模拟器：`simulator/generate_event
 ## 如何跑 / 测试
 
 ```bash
-cd GameStream-build
 python3 -m venv .venv && . .venv/bin/activate
 pip install -r requirements.txt
 
@@ -70,3 +69,14 @@ Windows：`scripts\quality_gate.ps1` / `scripts\run_all.ps1`（可用环境变�
 3. 执行：`.\scripts\run_all.ps1`（需 Python 3.11+）。
 4. 首次 `git init` / 关联 remote 后 push；确认 `.gitignore` 已忽略 `data/`、`venv/`、`*.duckdb`。
 5. 可选：在本机再跑 `python bench/run_bench.py`，只提交 `bench/results/` 里**实测** JSON。
+
+## 压测（仅实测）
+
+一次在构建机上的测量写入 `bench/results/bench_20260906T150843Z.json`：
+
+- 5_000 players / 50_000 events
+- simulate_sec ≈ 1.017；pipeline_sec ≈ 1.330
+- 非 SLA；换机器请重跑 `python bench/run_bench.py`
+
+Kafka Lag / Flink Checkpoint / P95 端到端未在本机无 broker 环境下测，不编造。
+

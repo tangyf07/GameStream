@@ -1,0 +1,13 @@
+{
+  "timestamp_utc": "20260906T150843Z",
+  "players": 5000,
+  "events": 50000,
+  "host_note": "measured on this machine; not a formal SLA claim",
+  "stages": {
+    "simulate_sec": 1.017,
+    "simulate_exit": 0,
+    "pipeline_sec": 1.33,
+    "pipeline_exit": 0,
+    "pipeline_stdout_tail": "[2/5] ODS \u2192 DWD (DuckDB)\n      ODS=50000 DWD=50000 in 0.6s\n[3/5] DWS aggregates\n      done in 0.4s\n[4/5] ADS metrics\n      done in 0.1s\n[5/5] Summary snapshot\n      DAU by day (all servers):\n        2026-08-30  dau=2077\n        2026-08-31  dau=3787\n        2026-09-01  dau=3794\n        2026-09-02  dau=3789\n        2026-09-03  dau=3806\n        2026-09-04  dau=3818\n        2026-09-05  dau=3792\n        2026-09-06  dau=2955\n      avg pay_rate=0.0364  avg arpu_cny=7.2328  (demo synthetic data)\n\n[OK] DuckDB \u2192 /workspace/GameStream-build/data/bench_20260906T150843Z.duckdb\n[OK] Parquet under data/ods|dwd|dws|ads\n"
+  }
+}
