@@ -1,0 +1,23 @@
+# Kafka / file-topic names for GameStream event stream
+topics:
+  raw_events: gamestream.ods.player_events
+  dwd_events: gamestream.dwd.player_events_clean
+  dws_player_di: gamestream.dws.player_behavior_di
+  ads_metrics: gamestream.ads.metrics_stream
+  ads_pay_rate: gamestream.ads.pay_rate_di
+  ads_arpu: gamestream.ads.arpu_di
+  ads_online: gamestream.ads.online_duration_di
+  ads_dungeon: gamestream.ads.dungeon_clear_rate_di
+
+# File-based topic simulation (local lite, no Kafka)
+file_topics:
+  base_dir: data/topics
+  raw_events: data/topics/raw_events
+  processed: data/processed
+
+# Demo scale defaults (overridden by run_all --players/--events)
+demo:
+  players: 2000
+  events: 20000
+  servers: 8
+  seed: 42

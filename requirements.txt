@@ -1,0 +1,11 @@
+# GameStream local lite stack (Windows / Linux, no Docker required)
+duckdb>=0.10.0,<2.0
+pandas>=2.0.0,<3.0
+pyarrow>=14.0.0,<20.0
+pyyaml>=6.0
+jsonschema>=4.20.0
+pytest>=7.4.0
+# Optional: install if you want Spark batch locally
+# pyspark>=3.5.0
+# Optional Kafka client (production-shaped; lite path uses file topics)
+# confluent-kafka>=2.3.0

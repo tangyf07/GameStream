@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.venv/
+env/
+.env
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Data & runtime artifacts
+data/**
+!data/.gitkeep
+*.duckdb
+*.duckdb.wal
+*.parquet
+*.csv
+!simulator/schemas/**
+
+# Bench raw outputs (keep .gitkeep)
+bench/results/**
+!bench/results/.gitkeep
+!bench/results/*.md
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Logs / temp
+*.log
+*.tmp
+tmp/
+.cache/
+
+# Zip packaging leftovers
+*.zip
+!GameStream-build.zip

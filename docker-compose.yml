@@ -1,0 +1,72 @@
+# Optional full stack for Docker users (production-shaped reference).
+# User machine tangyf: NO Docker required — use pipeline/local_runner.py + DuckDB.
+#
+# Services: Redpanda (Kafka API) + Flink JM/TM + Doris FE/BE (simplified) OR ClickHouse alt.
+# This compose is a reference layout; images/versions may need pin updates for your env.
+
+services:
+  redpanda:
+    image: docker.redpanda.com/redpandadata/redpanda:v24.2.4
+    command:
+      - redpanda
+      - start
+      - --overprovisioned
+      - --smp
+      - "1"
+      - --memory
+      - 1G
+      - --reserve-memory
+      - 0M
+      - --node-id
+      - "0"
+      - --check=false
+      - --kafka-addr
+      - internal://0.0.0.0:9092,external://0.0.0.0:19092
+      - --advertise-kafka-addr
+      - internal://redpanda:9092,external://localhost:19092
+    ports:
+      - "19092:19092"
+    profiles: ["full"]
+
+  jobmanager:
+    image: flink:1.18-scala_2.12-java17
+    command: jobmanager
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager
+    ports:
+      - "8081:8081"
+    profiles: ["full"]
+
+  taskmanager:
+    image: flink:1.18-scala_2.12-java17
+    depends_on:
+      - jobmanager
+    command: taskmanager
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager
+        taskmanager.numberOfTaskSlots: 4
+    profiles: ["full"]
+
+  # ClickHouse as a lighter OLAP stand-in when Doris images are heavy
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.8
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    profiles: ["full"]
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+
+  # Doris FE/BE often need custom images / host networking — documented only:
+  # Prefer ClickHouse profile above for casual Docker demos.
+  # Production story remains: Flink → Doris.
+
+networks:
+  default:
+    name: gamestream-net

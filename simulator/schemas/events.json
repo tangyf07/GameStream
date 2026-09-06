@@ -1,0 +1,232 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GameStreamPlayerEvent",
+  "description": "Unified player behavior event envelope for GameStream lakehouse",
+  "type": "object",
+  "required": [
+    "event_id",
+    "event_type",
+    "event_time",
+    "player_id",
+    "role_id",
+    "server_id",
+    "session_id"
+  ],
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "description": "UUID v4 event id"
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "login",
+        "create_role",
+        "enter_dungeon",
+        "clear_dungeon",
+        "death",
+        "equip",
+        "enhance",
+        "recharge",
+        "gacha",
+        "friend",
+        "logout"
+      ]
+    },
+    "event_time": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO8601 UTC event time"
+    },
+    "player_id": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "role_id": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "0 if no role yet (pre create_role)"
+    },
+    "server_id": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "session_id": {
+      "type": "string"
+    },
+    "payload": {
+      "type": "object",
+      "description": "Type-specific fields; keys depend on event_type"
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "event_type": { "const": "login" } } },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "properties": {
+              "client_version": { "type": "string" },
+              "device_os": { "type": "string" },
+              "channel": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "event_type": { "const": "create_role" } } },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "properties": {
+              "role_name": { "type": "string" },
+              "class_id": { "type": "integer" },
+              "gender": { "type": "integer" }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "event_type": { "const": "enter_dungeon" } } },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "required": ["dungeon_id"],
+            "properties": {
+              "dungeon_id": { "type": "integer" },
+              "difficulty": { "type": "integer" },
+              "party_size": { "type": "integer" }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "event_type": { "const": "clear_dungeon" } } },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "required": ["dungeon_id"],
+            "properties": {
+              "dungeon_id": { "type": "integer" },
+              "clear_time_sec": { "type": "integer" },
+              "stars": { "type": "integer" }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "event_type": { "const": "death" } } },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "properties": {
+              "dungeon_id": { "type": ["integer", "null"] },
+              "killer_type": { "type": "string" },
+              "map_id": { "type": "integer" }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "event_type": { "const": "equip" } } },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "properties": {
+              "item_id": { "type": "integer" },
+              "slot": { "type": "string" },
+              "rarity": { "type": "integer" }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "event_type": { "const": "enhance" } } },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "properties": {
+              "item_id": { "type": "integer" },
+              "from_level": { "type": "integer" },
+              "to_level": { "type": "integer" },
+              "success": { "type": "boolean" }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "event_type": { "const": "recharge" } } },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "required": ["amount_fen"],
+            "properties": {
+              "amount_fen": { "type": "integer", "minimum": 1 },
+              "product_id": { "type": "string" },
+              "pay_channel": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "event_type": { "const": "gacha" } } },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "properties": {
+              "pool_id": { "type": "integer" },
+              "draw_count": { "type": "integer" },
+              "cost_ticket": { "type": "integer" },
+              "got_ssr": { "type": "boolean" }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "event_type": { "const": "friend" } } },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "properties": {
+              "action": { "type": "string", "enum": ["add", "accept", "remove"] },
+              "target_player_id": { "type": "integer" }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "event_type": { "const": "logout" } } },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "properties": {
+              "reason": { "type": "string" },
+              "online_sec": { "type": "integer", "minimum": 0 }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

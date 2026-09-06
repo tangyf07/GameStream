@@ -1,0 +1,10 @@
+# Local lite storage paths (DuckDB + Parquet)
+paths:
+  data_root: data
+  raw_jsonl: data/raw/events.jsonl
+  ods_parquet: data/ods/player_events.parquet
+  dwd_parquet: data/dwd/player_events_clean.parquet
+  dws_dir: data/dws
+  ads_dir: data/ads
+  duckdb: data/gamestream.duckdb
+  sample_raw: data/sample/events_sample.jsonl
