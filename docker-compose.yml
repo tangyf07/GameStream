@@ -1,72 +1,137 @@
-# Optional full stack for Docker users (production-shaped reference).
-# User machine tangyf: NO Docker required — use pipeline/local_runner.py + DuckDB.
-#
-# Services: Redpanda (Kafka API) + Flink JM/TM + Doris FE/BE (simplified) OR ClickHouse alt.
-# This compose is a reference layout; images/versions may need pin updates for your env.
+# GameStream G1 — WSL2 runnable (~8Gi RAM)
+# Kafka apache/kafka:3.7.0 + Flink 1.18 JM/TM + Doris FE/BE 3.0.4
+# Notes:
+# - Doris entrypoint wants IPv4 in FE_SERVERS/BE_ADDR
+# - WSL2 cgroupv2: Doris/Java needs -XX:-UseContainerSupport (avoid NPE)
+# Usage: docker compose up -d
 
-services:
-  redpanda:
-    image: docker.redpanda.com/redpandadata/redpanda:v24.2.4
-    command:
-      - redpanda
-      - start
-      - --overprovisioned
-      - --smp
-      - "1"
-      - --memory
-      - 1G
-      - --reserve-memory
-      - 0M
-      - --node-id
-      - "0"
-      - --check=false
-      - --kafka-addr
-      - internal://0.0.0.0:9092,external://0.0.0.0:19092
-      - --advertise-kafka-addr
-      - internal://redpanda:9092,external://localhost:19092
-    ports:
-      - "19092:19092"
-    profiles: ["full"]
-
-  jobmanager:
-    image: flink:1.18-scala_2.12-java17
-    command: jobmanager
-    environment:
-      - |
-        FLINK_PROPERTIES=
-        jobmanager.rpc.address: jobmanager
-    ports:
-      - "8081:8081"
-    profiles: ["full"]
-
-  taskmanager:
-    image: flink:1.18-scala_2.12-java17
-    depends_on:
-      - jobmanager
-    command: taskmanager
-    environment:
-      - |
-        FLINK_PROPERTIES=
-        jobmanager.rpc.address: jobmanager
-        taskmanager.numberOfTaskSlots: 4
-    profiles: ["full"]
-
-  # ClickHouse as a lighter OLAP stand-in when Doris images are heavy
-  clickhouse:
-    image: clickhouse/clickhouse-server:24.8
-    ports:
-      - "8123:8123"
-      - "9000:9000"
-    profiles: ["full"]
-    ulimits:
-      nofile:
-        soft: 262144
-        hard: 262144
-
-  # Doris FE/BE often need custom images / host networking — documented only:
-  # Prefer ClickHouse profile above for casual Docker demos.
-  # Production story remains: Flink → Doris.
+name: gamestream
 
 networks:
   default:
     name: gamestream-net
+    ipam:
+      config:
+        - subnet: 172.28.1.0/24
+
+services:
+  kafka:
+    image: apache/kafka:3.7.0
+    container_name: gs-kafka
+    hostname: kafka
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:19092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://localhost:19092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+    ports:
+      - "19092:19092"
+    mem_limit: 768m
+    cpus: 1.0
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list >/dev/null 2>&1"]
+      interval: 20s
+      timeout: 15s
+      retries: 12
+      start_period: 50s
+    restart: unless-stopped
+
+  jobmanager:
+    image: flink:1.18-scala_2.12-java17
+    container_name: gs-flink-jm
+    command: jobmanager
+    ports:
+      - "8081:8081"
+    environment:
+      FLINK_PROPERTIES: |
+        jobmanager.rpc.address: jobmanager
+        jobmanager.memory.process.size: 768m
+        parallelism.default: 1
+        rest.bind-address: 0.0.0.0
+    depends_on:
+      kafka:
+        condition: service_started
+    mem_limit: 900m
+    cpus: 0.75
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8081/overview >/dev/null"]
+      interval: 15s
+      timeout: 5s
+      retries: 12
+      start_period: 45s
+    restart: unless-stopped
+
+  taskmanager:
+    image: flink:1.18-scala_2.12-java17
+    container_name: gs-flink-tm
+    command: taskmanager
+    environment:
+      FLINK_PROPERTIES: |
+        jobmanager.rpc.address: jobmanager
+        taskmanager.numberOfTaskSlots: 2
+        taskmanager.memory.process.size: 1024m
+        parallelism.default: 1
+    depends_on:
+      jobmanager:
+        condition: service_started
+    mem_limit: 1200m
+    cpus: 1.0
+    restart: unless-stopped
+
+  doris-fe:
+    image: apache/doris:fe-3.0.4
+    container_name: gs-doris-fe
+    hostname: doris-fe
+    environment:
+      FE_SERVERS: fe1:172.28.1.10:9010
+      FE_ID: "1"
+      # WSL2: avoid JDK cgroup NPE in BDBJE MemoryBudget
+      JAVA_TOOL_OPTIONS: -XX:-UseContainerSupport -Xmx1024m
+    ports:
+      - "8030:8030"
+      - "9030:9030"
+    networks:
+      default:
+        ipv4_address: 172.28.1.10
+    # no mem_limit: WSL cgroup + Doris BDBJE is fragile with hard limits
+    cpus: 1.0
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://127.0.0.1:8030/api/bootstrap >/dev/null || curl -sf http://127.0.0.1:8030/ >/dev/null || exit 1"]
+      interval: 20s
+      timeout: 10s
+      retries: 24
+      start_period: 180s
+    restart: unless-stopped
+
+  doris-be:
+    image: apache/doris:be-3.0.4
+    container_name: gs-doris-be
+    hostname: doris-be
+    depends_on:
+      doris-fe:
+        condition: service_started
+    environment:
+      FE_SERVERS: fe1:172.28.1.10:9010
+      BE_ADDR: 172.28.1.11:9050
+      JAVA_TOOL_OPTIONS: -XX:-UseContainerSupport
+    ports:
+      - "8040:8040"
+    networks:
+      default:
+        ipv4_address: 172.28.1.11
+    cpus: 1.5
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
+    restart: unless-stopped

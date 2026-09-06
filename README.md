@@ -24,15 +24,15 @@ flowchart LR
 
 ## 写死口径：lite vs 生产参考
 
-| | **本机默认可跑（lite）** | **生产参考（代码在仓，默认未拉起）** |
+| | **本机默认可跑（lite）** | **WSL Docker 生产组件（G1 已验证可起）** |
 |--|--------------------------|----------------------------------------|
-| 怎么跑 | `scripts/run_all.sh` / `run_all.ps1` → DuckDB | `docker compose --profile full` + `flink/sql` |
-| 接入 | `FileTopic` JSONL | Kafka / Redpanda |
-| 流处理 | `pipeline/local_runner.py` | Flink SQL/Job |
-| OLAP | Parquet + DuckDB | Doris / Iceberg DDL |
-| 状态 | **已在 Windows/Linux 质量门跑通** | **当前构建机与 tangyf 均无 Docker，未上集群**；说明见 [`docs/docker-compose-status.md`](docs/docker-compose-status.md) |
+| 怎么跑 | `scripts/run_all.sh` / `run_all.ps1` → DuckDB | `docker compose up -d`（WSL） |
+| 接入 | `FileTopic` JSONL | **Kafka** `apache/kafka:3.7`（`:19092`） |
+| 流处理 | `pipeline/local_runner.py` | **Flink** JM/TM（UI `:8081`） |
+| OLAP | Parquet + DuckDB | **Doris** FE/BE（HTTP `:8030` / MySQL `:9030`） |
+| 状态 | 质量门可跑 | **WSL 已拉起并探测**；详见 [`docs/docker-compose-status.md`](docs/docker-compose-status.md) |
 
-不要把 Flink/Kafka/Doris 说成「本机已经跑着」——那是面试用的生产形状参考，与 lite **同口径**（同一套 `metric_id`）。
+**勿夸大：** G1 = 组件可起 + 端口可达。Flink Job→Doris **端到端**属 G2，未在此宣称。lite 与 prod **同口径**（同一套 `metric_id`）。
 
 ## 事件与分层
 
