@@ -16,7 +16,7 @@ UNIQUE KEY(dt, server_id)
 PARTITION BY RANGE(dt) ()
 DISTRIBUTED BY HASH(server_id) BUCKETS 8
 PROPERTIES (
-    "replication_num" = "3",
+    "replication_num" = "1",
     "dynamic_partition.enable" = "true",
     "dynamic_partition.time_unit" = "DAY",
     "dynamic_partition.start" = "-30",
@@ -42,7 +42,7 @@ UNIQUE KEY(cohort_dt, server_id, n_days)
 PARTITION BY RANGE(cohort_dt) ()
 DISTRIBUTED BY HASH(server_id) BUCKETS 8
 PROPERTIES (
-    "replication_num" = "3",
+    "replication_num" = "1",
     "dynamic_partition.enable" = "true",
     "dynamic_partition.time_unit" = "DAY",
     "dynamic_partition.start" = "-60",
@@ -67,7 +67,7 @@ UNIQUE KEY(dt, server_id)
 PARTITION BY RANGE(dt) ()
 DISTRIBUTED BY HASH(server_id) BUCKETS 8
 PROPERTIES (
-    "replication_num" = "3",
+    "replication_num" = "1",
     "dynamic_partition.enable" = "true",
     "dynamic_partition.time_unit" = "DAY",
     "dynamic_partition.start" = "-30",
@@ -92,7 +92,7 @@ UNIQUE KEY(dt, server_id)
 PARTITION BY RANGE(dt) ()
 DISTRIBUTED BY HASH(server_id) BUCKETS 8
 PROPERTIES (
-    "replication_num" = "3",
+    "replication_num" = "1",
     "dynamic_partition.enable" = "true",
     "dynamic_partition.time_unit" = "DAY",
     "dynamic_partition.start" = "-30",
@@ -117,7 +117,7 @@ UNIQUE KEY(dt, server_id)
 PARTITION BY RANGE(dt) ()
 DISTRIBUTED BY HASH(server_id) BUCKETS 8
 PROPERTIES (
-    "replication_num" = "3",
+    "replication_num" = "1",
     "dynamic_partition.enable" = "true",
     "dynamic_partition.time_unit" = "DAY",
     "dynamic_partition.start" = "-30",
@@ -143,7 +143,7 @@ UNIQUE KEY(dt, server_id, dungeon_id)
 PARTITION BY RANGE(dt) ()
 DISTRIBUTED BY HASH(dungeon_id) BUCKETS 16
 PROPERTIES (
-    "replication_num" = "3",
+    "replication_num" = "1",
     "dynamic_partition.enable" = "true",
     "dynamic_partition.time_unit" = "DAY",
     "dynamic_partition.start" = "-30",
@@ -168,7 +168,7 @@ UNIQUE KEY(dt, server_id)
 PARTITION BY RANGE(dt) ()
 DISTRIBUTED BY HASH(server_id) BUCKETS 8
 PROPERTIES (
-    "replication_num" = "3",
+    "replication_num" = "1",
     "dynamic_partition.enable" = "true",
     "dynamic_partition.time_unit" = "DAY",
     "dynamic_partition.start" = "-30",

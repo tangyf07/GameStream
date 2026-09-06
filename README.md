@@ -14,7 +14,7 @@ flowchart LR
   subgraph GS_pipe [GameStream 实时链路]
     E[游戏行为事件] --> K[Kafka]
     K --> F[Flink 清洗/聚合]
-    F --> OLAP[Doris / Iceberg]
+    F --> OLAP[Doris]
     E -. lite .-> DB[(DuckDB)]
     DB --> ADS[(ADS 指标表)]
     OLAP --> ADS
@@ -22,17 +22,27 @@ flowchart LR
   GS --- ADS
 ```
 
-## 写死口径：lite vs 生产参考
+## 写死口径：lite vs 生产组件
 
-| | **本机默认可跑（lite）** | **WSL Docker 生产组件（G1 已验证可起）** |
-|--|--------------------------|----------------------------------------|
+| | **本机默认可跑（lite）** | **WSL Docker（G1 组件 + G2 E2E）** |
+|--|--------------------------|-----------------------------------|
 | 怎么跑 | `scripts/run_all.sh` / `run_all.ps1` → DuckDB | `docker compose up -d`（WSL） |
 | 接入 | `FileTopic` JSONL | **Kafka** `apache/kafka:3.7`（`:19092`） |
 | 流处理 | `pipeline/local_runner.py` | **Flink** JM/TM（UI `:8081`） |
 | OLAP | Parquet + DuckDB | **Doris** FE/BE（HTTP `:8030` / MySQL `:9030`） |
-| 状态 | 质量门可跑 | **WSL 已拉起并探测**；详见 [`docs/docker-compose-status.md`](docs/docker-compose-status.md) |
+| 端到端 | lite ADS 在 DuckDB | **G2 已验证**：Simulator→Kafka→Flink→Doris ADS（见 [`docs/e2e-g2.md`](docs/e2e-g2.md)） |
 
-**勿夸大：** G1 = 组件可起 + 端口可达。Flink Job→Doris **端到端**属 G2，未在此宣称。lite 与 prod **同口径**（同一套 `metric_id`）。
+**勿夸大：** G1 = 组件可起 + 端口可达。G2 = 小规模 E2E 写入 Doris ADS（`ads_dau_di` / `ads_pay_rate_di`）。**未宣称** G3–G6（watermark/checkpoint 失败演练、Lag/吞吐/P95 压测编造、K8s/Spark/Iceberg 生产部署）。lite 与 prod **同口径**（同一套 `metric_id`）。
+
+## G2 快速跑（WSL，小流量）
+
+```bash
+# 栈已 up 后：
+bash scripts/e2e_g2.sh
+# 默认 --players 500 --events 3000；结果落 docs/e2e-g2-query-result.txt
+```
+
+细节：[`docs/e2e-g2.md`](docs/e2e-g2.md)。
 
 ## 事件与分层
 
@@ -40,7 +50,7 @@ flowchart LR
 
 ODS → DWD → DWS → ADS（DAU / 留存 / 在线时长 / 付费率 / ARPU / 副本通关率 / 流失）。
 
-## 如何跑 / 测试
+## 如何跑 / 测试（lite）
 
 ```bash
 python3 -m venv .venv && . .venv/bin/activate
@@ -59,4 +69,4 @@ Windows：`.\scripts\quality_gate.ps1` / `.\scripts\run_all.ps1`。
 
 ## 压测
 
-仅提交实测：`bench/results/*.json`。无 Kafka 集群时 **不编造** Lag / Checkpoint / P95。
+仅提交实测：`bench/results/*.json`。无实测时 **不编造** Lag / Checkpoint / P95。
