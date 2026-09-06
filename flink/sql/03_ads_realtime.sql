@@ -3,8 +3,10 @@
 -- 面试要点：
 --   * 从 DWS upsert 流再聚合；PRIMARY KEY 覆盖写 → 看板可订正
 --   * Retention / Churn：跨天窗口，放 Spark + sql/metrics（本文件不算）
---   * metric_id 与 config/metrics.yaml、Doris ads 表一致，供 DataPilot 引用
+--   * metric_id 与 config/metrics.yaml、Doris ads 表一致，供 DataPilot / SQLGuard 引用
+--   * upsert-kafka 覆盖写：可订正；append 明细见 Iceberg notes
 -- 本地对照：local_runner.step_ads
+-- Job stub：flink/jobs/dws_ads_submit.py · FAQ：docs/interview-faq.md
 -- =============================================================================
 
 CREATE TABLE dws_player_rt_src (

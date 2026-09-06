@@ -48,12 +48,12 @@ Windows：`scripts\quality_gate.ps1` / `scripts\run_all.ps1`（可用环境变�
 
 可选 Docker 全栈：`docker compose --profile full up`（Redpanda + Flink + ClickHouse 参考；本机演示不依赖）。
 
-## 深挖索引（面试）
+## 二面深挖
 
-- Kafka / Flink 语义、水位线、状态、Checkpoint、倾斜、迟到数据 → [`docs/flink-kafka-deep-dive.md`](docs/flink-kafka-deep-dive.md)
-- 与本仓 SQL/Job 映射：同文档末节 + `flink/sql/*`、`flink/jobs/*`
-- 指标口径：`config/metrics.yaml`、`sql/metrics/`
-- Doris ADS 表设计：`sql/ddl/doris_ads.sql`；Iceberg：`sql/ddl/iceberg_notes.md`
+- Flink/Kafka 长文（barrier/2PC、反压、idleness、RocksDB、savepoint、充值幂等、vs DuckDB）→ [`docs/flink-kafka-deep-dive.md`](docs/flink-kafka-deep-dive.md)
+- 二面短答 FAQ（watermark/DAU/倾斜/迟到/留存批/upsert/Iceberg·Doris/DataPilot）→ [`docs/interview-faq.md`](docs/interview-faq.md)
+- Checkpoint 配置示例（键+注释，非实测）→ `flink/conf/checkpoint-recommendations.yaml`；Job：`flink/jobs/*`；SQL：`flink/sql/*`
+- 口径 / OLAP：`config/metrics.yaml`、`sql/metrics/`、`sql/ddl/doris_ads.sql`、`sql/ddl/iceberg_notes.md`
 
 ## 压测
 

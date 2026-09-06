@@ -5,8 +5,10 @@
 --   * group.id = gamestream-ods-clean：消费组；真正一致性靠 Checkpoint 存 offset
 --   * upsert-kafka + PRIMARY KEY(event_id)：at-least-once 重放下幂等去重
 --   * 过滤 11 类事件，与 simulator/schemas/events.json、local_runner DWD 对齐
+--   * 稀疏服 watermark：部署层配 source idle-timeout（见 flink/conf + deep-dive §5）
+--   * 充值进 SUM 前靠本表 event_id upsert，避免 at-least-once 金额双计
 -- 本地对照：pipeline/local_runner.py :: step_ods_dwd
--- 深挖文档：docs/flink-kafka-deep-dive.md
+-- 深挖：docs/flink-kafka-deep-dive.md · FAQ：docs/interview-faq.md
 -- =============================================================================
 
 CREATE TABLE kafka_ods_player_events (

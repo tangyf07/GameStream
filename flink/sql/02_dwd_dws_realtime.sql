@@ -6,7 +6,9 @@
 --   * Watermark 10s：窗口触发略晚于 ODS，给清洗链路留缓冲
 --   * 热点玩家倾斜：见 docs/flink-kafka-deep-dive.md §3（盐拆 key / 两阶段）
 --   * 留存/流失不在此算：跨天 lookback → Spark / DuckDB batch
+--   * 大 DAU：RocksDB + 增量 checkpoint；改并行度走 savepoint（conf + deep-dive §6–§7）
 -- 本地对照：local_runner.step_dws → dws.player_behavior_di
+-- Job stub：flink/jobs/dws_ads_submit.py
 -- =============================================================================
 
 CREATE TABLE dwd_events_src (

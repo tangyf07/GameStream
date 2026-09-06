@@ -1,0 +1,56 @@
+# =============================================================================
+# Flink checkpoint / state 推荐键示例（GameStream 生产参考）
+# -----------------------------------------------------------------------------
+# 用途：面试与部署对照；注释说明「为什么」，不是本机压测结果。
+# 禁止：把下列间隔/超时当成已测量 SLA 或 Lag/P95。
+# 对照作业：flink/sql/01_ods_clean.sql、02_dwd_dws_realtime.sql、03_ads_realtime.sql
+# 深挖：docs/flink-kafka-deep-dive.md §3–§7
+# =============================================================================
+
+# --- Checkpoint 基础 -----------------------------------------------------------
+# 流作业必须开；间隔按状态体积与可接受重放窗口权衡（示例键，请按集群调）。
+execution.checkpointing.interval: 60s
+execution.checkpointing.mode: EXACTLY_ONCE
+# 对齐超时：反压严重时先治反压，再考虑加大或改用非对齐
+execution.checkpointing.timeout: 10min
+execution.checkpointing.min-pause-between-checkpoints: 30s
+# 保留最近完成的 checkpoint 个数，便于排查
+execution.checkpointing.num-retained: 3
+
+# --- 对齐 vs 非对齐 ------------------------------------------------------------
+# 默认对齐（aligned）：语义清晰。屏障对齐过慢 / 超时频繁时再评估 unaligned。
+# execution.checkpointing.unaligned: true
+# execution.checkpointing.aligned-checkpoint-timeout: 1min
+# 说明见 docs/flink-kafka-deep-dive.md §3
+
+# --- State backend（玩家 keyed 状态）------------------------------------------
+# HashMap：小状态 demo；生产玩家日聚合用 RocksDB，避免堆 OOM
+state.backend: rocksdb
+state.checkpoints.dir: hdfs:///gamestream/flink/checkpoints
+state.savepoints.dir: hdfs:///gamestream/flink/savepoints
+# 增量 checkpoint：大状态（百万 player_id）强烈建议打开
+state.backend.incremental: true
+# 本地 RocksDB 目录（TaskManager 本地盘）
+state.backend.rocksdb.localdir: /var/flink/rocksdb
+
+# --- Kafka exactly-once / 事务（若用 transactional sink）----------------------
+# upsert-kafka 主键幂等路径可不依赖事务；append + EO 时需要：
+# sink.delivery-guarantee: exactly-once
+# sink.transactional-id-prefix: gamestream-ads-
+# 消费者侧需 isolation.read_committed 才能只读已提交事务
+
+# --- Watermark / 空闲（稀疏服）------------------------------------------------
+# SQL DDL 内已有 WATERMARK ... - INTERVAL 'Ns'
+# 分区空闲跳过通常在 Source / WatermarkStrategy 配置（示例名随版本略有差异）：
+# table.exec.source.idle-timeout: 5min
+# 含义：某 Kafka 分区超过该时间无记录则标 idle，避免拖死全局 watermark
+# 详见 docs/flink-kafka-deep-dive.md §5
+
+# --- 反压相关（观察用，非「推荐固定值」）----------------------------------------
+# taskmanager.network.memory.fraction / buffers-per-channel 等按集群调
+# 先看 Flink UI backpressure + Kafka consumer lag，再改网络缓冲
+
+# --- Savepoint 改并行度时注意 --------------------------------------------------
+# pipeline.max-parallelism 需在作业首次创建时留扩容余量
+# pipeline.max-parallelism: 128
+# 升级步骤见 docs/flink-kafka-deep-dive.md §7

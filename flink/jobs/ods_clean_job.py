@@ -10,7 +10,8 @@ PyFlink 提交入口：ODS clean（需 Flink 集群 + Kafka）。
 相关：
   - flink/sql/02_dwd_dws_realtime.sql  日窗 DWS（keyed state）
   - flink/sql/03_ads_realtime.sql      近实时 DAU/付费/ARPU/通关/在线
-  - docs/flink-kafka-deep-dive.md      分区/语义/倾斜/迟到/恢复
+  - flink/conf/checkpoint-recommendations.yaml  示例键（非实测）
+  - docs/flink-kafka-deep-dive.md · docs/interview-faq.md
 """
 from __future__ import annotations
 
