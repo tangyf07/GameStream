@@ -1,43 +1,71 @@
-# 指标口径定义 — 与 DataPilot / SQLGuard 对接约定
-# metric_id 稳定、可被外部系统引用；SQL 见 sql/metrics/
+# 指标口径 — DataPilot / SQLGuard 对接（与 docs/datapilot_contract.md 同步）
+# metric_id 稳定；改口径必须同步 sql/metrics、flink/sql/03_ads_realtime.sql、Doris DDL
+
 metrics:
   ads_dau_di:
     name: 日活 DAU
-    grain: day x server_id
-    formula: COUNT(DISTINCT player_id) WHERE event_type = 'login' OR 当日有任意行为事件
-    notes: 以当日出现过任意有效事件的 player_id 去重；优先用 login 补全，但不强制仅 login
+    table: ads.ads_dau_di
+    sql_file: sql/metrics/ads_dau_di.sql
+    flink_realtime: true
+    grain: [dt, server_id]
+    formula: COUNT(DISTINCT player_id) 当日有任意有效行为
+    notes: 不以仅 login 为唯一条件；与 Flink metric_id=ads_dau_di 一致
   ads_retention_nd:
     name: N日留存
-    grain: cohort_day x n_days x server_id
-    formula: cohort_日新增玩家中，在 day+N 仍有行为的玩家数 / cohort 日新增玩家数
+    table: ads.ads_retention_nd
+    sql_file: sql/metrics/ads_retention_nd.sql
+    flink_realtime: false
+    grain: [cohort_dt, n_days, server_id]
+    formula: cohort 日新增中 day+N 仍有行为 / cohort 新增
     n_days: [1, 3, 7]
   ads_online_duration_di:
     name: 日在线时长
-    grain: day x server_id
-    formula: SUM(session_duration_sec) / COUNT(DISTINCT player_id)；session 由 login→logout 配对
+    table: ads.ads_online_duration_di
+    sql_file: sql/metrics/ads_online_duration_di.sql
+    flink_realtime: true
+    grain: [dt, server_id]
+    formula: SUM(online_sec) / COUNT(DISTINCT player_id)；login→logout 配对
     unit: seconds
   ads_pay_rate_di:
     name: 付费率
-    grain: day x server_id
-    formula: COUNT(DISTINCT player_id WHERE event_type='recharge') / DAU
+    table: ads.ads_pay_rate_di
+    sql_file: sql/metrics/ads_pay_rate_di.sql
+    flink_realtime: true
+    grain: [dt, server_id]
+    formula: COUNT(DISTINCT recharge player) / DAU
   ads_arpu_di:
     name: ARPU
-    grain: day x server_id
-    formula: SUM(recharge.amount_fen) / 100.0 / DAU
+    table: ads.ads_arpu_di
+    sql_file: sql/metrics/ads_arpu_di.sql
+    flink_realtime: true
+    grain: [dt, server_id]
+    formula: SUM(amount_fen)/100.0 / DAU
     unit: CNY
   ads_dungeon_clear_rate_di:
     name: 副本通关率
-    grain: day x dungeon_id x server_id
-    formula: COUNT(clear_dungeon) / COUNT(enter_dungeon)
+    table: ads.ads_dungeon_clear_rate_di
+    sql_file: sql/metrics/ads_dungeon_clear_rate_di.sql
+    flink_realtime: true
+    grain: [dt, server_id, dungeon_id]
+    formula: clear_dungeon 次数 / enter_dungeon 次数
   ads_churn_di:
     name: 流失风险日表
-    grain: day x server_id
-    formula: 过去7日有行为且过去3日无行为的玩家数 / 过去7日有行为玩家数
+    table: ads.ads_churn_di
+    sql_file: sql/metrics/ads_churn_di.sql
+    flink_realtime: false
+    grain: [dt, server_id]
+    formula: 近7日有行为且近3日无行为 / 近7日有行为
     window_active_days: 7
     window_silent_days: 3
 
 datapilot_contract:
   metric_id_field: metric_id
-  value_field: metric_value
+  tables_prefix: ads.
   dims_allowed: [dt, server_id, dungeon_id, n_days, cohort_dt]
   sql_dir: sql/metrics/
+  flink_ads_sql: flink/sql/03_ads_realtime.sql
+  doris_ddl: sql/ddl/doris_ads.sql
+  contract_doc: docs/datapilot_contract.md
+  links:
+    datapilot: https://github.com/tangyf07/DataPilot
+    sqlguard: https://github.com/tangyf07/sql-write-gate
