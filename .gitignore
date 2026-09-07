@@ -48,3 +48,7 @@ tmp/
 # Zip packaging leftovers
 *.zip
 !GameStream-build.zip
+
+# Flink local checkpoint volume (G4 demo); keep .gitkeep
+flink/checkpoints/**
+!flink/checkpoints/.gitkeep

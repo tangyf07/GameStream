@@ -1,0 +1,41 @@
+=== G4 checkpoint + idempotency result ===
+time_utc=2026-09-07T01:32:45Z
+job1=5f427702ae6ca072d625a183ff574419 job2_restored=5e71911ff90391a1d4b9bbc251837334
+group.id=gamestream-g4-cp-v1
+checkpoint_interval=10s state.backend=hashmap state.checkpoints.dir=file:///checkpoints
+compose_volume=./flink/checkpoints:/checkpoints (JM+TM)
+
+=== checkpoint (job1 before cancel) ===
+completed_count=1
+external_path=file:/checkpoints/5f427702ae6ca072d625a183ff574419/chk-1
+counts= {"restored": 0, "total": 2, "in_progress": 0, "completed": 1, "failed": 1}
+latest_completed= {"id": 1, "status": "COMPLETED", "external_path": "file:/checkpoints/5f427702ae6ca072d625a183ff574419/chk-1", "checkpointed_size": 24585, "state_size": 24585}
+
+=== aggregates ===
+before_cancel={"metric_id": "g4_recharge", "recharge_cnt": 5, "amount_sum": 244, "player_cnt": 5}
+after_restore_dup_replay={"metric_id": "g4_recharge", "recharge_cnt": 5, "amount_sum": 244, "player_cnt": 5}
+after_new_event={"metric_id": "g4_recharge", "recharge_cnt": 6, "amount_sum": 342, "player_cnt": 6}
+expected: before=5/244; after dups still 5/244; after new=6/342
+
+=== Kafka dedup audit (unique event_ids) ===
+dedup_rows= 6 unique_ids= 6
+ids= ['g4-r-01', 'g4-r-02', 'g4-r-03', 'g4-r-04', 'g4-r-05', 'g4-r-06']
+
+=== restored job checkpoints completed=4 ===
+
+=== Doris load from final Kafka agg (ALS + UNIQUE KEY; NOT EO-2PC) ===
+loaded ads.g4_recharge_di from kafka agg
+=== Doris ads.g4_recharge_di ===
+metric_id	recharge_cnt	amount_sum	player_cnt
+g4_recharge	6	342.00	6
+
+=== consistency class (honest) ===
+Flink checkpoint mode=EXACTLY_ONCE (operator state + Kafka source offsets)
+Kafka upsert sink=at-least-once + PK idempotent upsert (NOT transactional EO)
+Doris UNIQUE KEY=idempotent absorb of ALS retries (NOT claim end-to-end EO-2PC)
+
+=== OVERALL ===
+PASS cp_completed= 1
+before {'metric_id': 'g4_recharge', 'recharge_cnt': 5, 'amount_sum': 244, 'player_cnt': 5}
+after_dup {'metric_id': 'g4_recharge', 'recharge_cnt': 5, 'amount_sum': 244, 'player_cnt': 5}
+after_new {'metric_id': 'g4_recharge', 'recharge_cnt': 6, 'amount_sum': 342, 'player_cnt': 6}

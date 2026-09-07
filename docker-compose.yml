@@ -1,4 +1,5 @@
-# GameStream G1/G2 — WSL2 runnable (~8Gi RAM)
+# GameStream G1–G4 — WSL2 runnable (~8Gi RAM)
+# G4: ./flink/checkpoints:/checkpoints on JM+TM (interval 10s, hashmap)
 # Kafka apache/kafka:3.7.0 + Flink 1.18 JM/TM + Doris FE/BE 3.0.4
 # G2: mount flink/jars (Kafka + JDBC + MySQL) into /opt/flink/usrlib
 # Notes:
@@ -59,9 +60,19 @@ services:
         jobmanager.memory.process.size: 768m
         parallelism.default: 1
         rest.bind-address: 0.0.0.0
+        # G4 checkpoint (hashmap + file:// volume; NOT G5/G6)
+        execution.checkpointing.interval: 10s
+        execution.checkpointing.mode: EXACTLY_ONCE
+        execution.checkpointing.min-pause-between-checkpoints: 5s
+        execution.checkpointing.timeout: 2min
+        execution.checkpointing.externalized-checkpoint-retention: RETAIN_ON_CANCELLATION
+        execution.checkpointing.num-retained: 3
+        state.backend.type: hashmap
+        state.checkpoints.dir: file:///checkpoints
     volumes:
       - ./flink/jars:/opt/flink/usrlib:ro
       - ./flink/sql:/opt/flink/sql:ro
+      - ./flink/checkpoints:/checkpoints
     depends_on:
       kafka:
         condition: service_started
@@ -85,8 +96,15 @@ services:
         taskmanager.numberOfTaskSlots: 2
         taskmanager.memory.process.size: 1024m
         parallelism.default: 1
+        # G4: TM must share same checkpoint dir as JM
+        execution.checkpointing.interval: 10s
+        execution.checkpointing.mode: EXACTLY_ONCE
+        execution.checkpointing.externalized-checkpoint-retention: RETAIN_ON_CANCELLATION
+        state.backend.type: hashmap
+        state.checkpoints.dir: file:///checkpoints
     volumes:
       - ./flink/jars:/opt/flink/usrlib:ro
+      - ./flink/checkpoints:/checkpoints
     depends_on:
       jobmanager:
         condition: service_started

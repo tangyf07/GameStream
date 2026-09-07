@@ -1,0 +1,192 @@
+[g4] root=/mnt/c/Users/tangy/source/repos/GameStream group=gamestream-g4-cp-v1 cp_wait=40s
+[g4] 1/10 check stack + checkpoint volume
+NAME          IMAGE                          COMMAND                  SERVICE       CREATED         STATUS                    PORTS
+gs-doris-be   apache/doris:be-3.0.4          "bash entry_point.sh"    doris-be      9 hours ago     Up 39 seconds             0.0.0.0:8040->8040/tcp, [::]:8040->8040/tcp
+gs-doris-fe   apache/doris:fe-3.0.4          "bash init_fe.sh"        doris-fe      9 hours ago     Up 39 seconds (healthy)   0.0.0.0:8030->8030/tcp, [::]:8030->8030/tcp, 0.0.0.0:9030->9030/tcp, [::]:9030->9030/tcp
+gs-flink-jm   flink:1.18-scala_2.12-java17   "/docker-entrypoint.…"   jobmanager    7 minutes ago   Up 39 seconds (healthy)   6123/tcp, 0.0.0.0:8081->8081/tcp, [::]:8081->8081/tcp
+gs-flink-tm   flink:1.18-scala_2.12-java17   "/docker-entrypoint.…"   taskmanager   7 minutes ago   Up 39 seconds             6123/tcp, 8081/tcp
+gs-kafka      apache/kafka:3.7.0             "/__cacert_entrypoin…"   kafka         9 hours ago     Up 39 seconds (healthy)   9092/tcp, 0.0.0.0:19092->19092/tcp, [::]:19092->19092/tcp
+[g4] wait Flink UI + slots
+[g4] Flink UI up try=1 slots-total=2
+drwxrwxrwx 1 1000 1000 4096 Sep  7 01:23 /checkpoints
+drwxrwxrwx 1 1000 1000 4096 Sep  7 01:30 /checkpoints
+[g4] Doris attempt 1 Alive=true
+[g4] 2/10 jars
+[g4] 3/10 Doris DDL (best-effort)
+[g4] 4/10 Kafka topics (recreate empty)
+Error while executing topic command : Topic 'gamestream.g4.recharge' does not exist as expected
+Error while executing topic command : Topic 'gamestream.g4.recharge_dedup' does not exist as expected
+Error while executing topic command : Topic 'gamestream.g4.recharge_agg' does not exist as expected
+WARNING: Due to limitations in metric names, topics with a period ('.') or underscore ('_') could collide. To avoid issues it is best to use either, but not both.
+Created topic gamestream.g4.recharge.
+WARNING: Due to limitations in metric names, topics with a period ('.') or underscore ('_') could collide. To avoid issues it is best to use either, but not both.
+Created topic gamestream.g4.recharge_dedup.
+WARNING: Due to limitations in metric names, topics with a period ('.') or underscore ('_') could collide. To avoid issues it is best to use either, but not both.
+Created topic gamestream.g4.recharge_agg.
+[g4] 5/10 generate recharge fixtures
+batch1_lines=7 unique=5 expected_sum=244.00 dup_replay_lines=3 new=1
+total 4
+drwxrwxrwx 1 1000 1000 4096 Sep  7 01:30 .
+drwxr-xr-x 1 root root 4096 Sep  7 01:30 ..
+-rwxrwxrwx 1 1000 1000   65 Sep  7 01:19 .gitkeep
+[g4] 6/10 submit Flink streaming SQL (no savepoint)
+507
+
+Flink SQL> 
+> -- Global recharge totals (upsert by metric_id)
+> CREATE TABLE kafka_g4_recharge_agg (
+>     metric_id      STRING,
+>     recharge_cnt   BIGINT,
+>     amount_sum     DECIMAL(18, 2),
+>     player_cnt     BIGINT,
+>     PRIMARY KEY (metric_id) NOT ENFORCED
+> ) WITH (
+>     'connector' = 'upsert-kafka',
+>     'topic' = 'gamestream.g4.recharge_agg',
+>     'properties.bootstrap.servers' = 'kafka:9092',
+>     'key.format' = 'json',
+>     'value.format' = 'json'
+> )[34;1m[INFO] Execute statement succeed.[0m
+
+Flink SQL> [34;1m[INFO] Execute statement succeed.[0m
+
+Flink SQL> [34;1m[INFO] Execute statement succeed.[0m
+
+Flink SQL> 
+> INSERT INTO kafka_g4_recharge_agg
+> SELECT
+>     CAST('g4_recharge' AS STRING) AS metric_id,
+>     CAST(COUNT(*) AS BIGINT) AS recharge_cnt,
+>     CAST(SUM(amount) AS DECIMAL(18, 2)) AS amount_sum,
+>     CAST(COUNT(DISTINCT player_id) AS BIGINT)[34;1m[INFO] Execute statement succeed.[0m
+
+Flink SQL> 
+Flink SQL> 
+> -- Global recharge totals (upsert by metric_id)
+> CREATE TABLE kafka_g4_recharge_agg (
+>     metric_id      STRING,
+>     recharge_cnt   BIGINT,
+>     amount_sum     DECIMAL(18, 2),
+>     player_cnt     BIGINT,
+>     PRIMARY KEY (metric_id) NOT ENFORCED
+> ) WITH (
+>     'connector' = 'upsert-kafka',
+>     'topic' = 'gamestream.g4.recharge_agg',
+>     'properties.bootstrap.servers' = 'kafka:9092',
+>     'key.format' = 'json',
+>     'value.format' = 'json'
+> )[34;1m[INFO] Execute statement succeed.[0m
+
+Flink SQL> [34;1m[INFO] Execute statement succeed.[0m
+
+Flink SQL> [34;1m[INFO] Execute statement succeed.[0m
+
+Flink SQL> 
+> INSERT INTO kafka_g4_recharge_agg
+> SELECT
+>     CAST('g4_recharge' AS STRING) AS metric_id,
+>     CAST(COUNT(*) AS BIGINT) AS recharge_cnt,
+>     CAST(SUM(amount) AS DECIMAL(18, 2)) AS amount_sum,
+>     CAST(COUNT(DISTINCT player_id) AS BIGINT)[34;1m[INFO] Execute statement succeed.[0m
+
+Flink SQL> [g4] job RUNNING id=5f427702ae6ca072d625a183ff574419
+[g4] 7/10 produce batch1 (5 unique + 2 dups)
+[g4] wait for agg = 5 / 244.00
+[g4] before_cancel OK agg={"metric_id": "g4_recharge", "recharge_cnt": 5, "amount_sum": 244, "player_cnt": 5}
+[g4] wait for >=1 completed checkpoint (REST)
+[g4] checkpoint poll 1 completed=1 path=file:/checkpoints/5f427702ae6ca072d625a183ff574419/chk-1
+[g4] completed_checkpoints=1 external_path=file:/checkpoints/5f427702ae6ca072d625a183ff574419/chk-1
+[g4] 8/10 cancel job (retain externalized CP)
+[g4] job state after cancel: CANCELED
+[g4] restore path=file:/checkpoints/5f427702ae6ca072d625a183ff574419/chk-1
+[g4] 9/10 restore from checkpoint + re-produce dups
+wrote /tmp/g4_checkpoint_idempotency_runtime.sql savepoint= file:/checkpoints/5f427702ae6ca072d625a183ff574419/chk-1 group= gamestream-g4-cp-v1
+917
+>     tag           STRING,
+>     PRIMARY KEY (event_id) NOT ENFORCED
+> ) WITH (
+>     'connector' = 'upsert-kafka',
+>     'topic' = 'gamestream.g4.recharge_dedup',
+>     'properties.bootstrap.servers' = 'kafka:9092',
+>     'key.format' = 'json',
+>     'value.format' = 'json',
+>     'value.json.timestamp-format.standard' = 'SQL'
+> )[34;1m[INFO] Execute statement succeed.[0m
+
+Flink SQL> 
+> -- Global recharge totals (upsert by metric_id)
+> CREATE TABLE kafka_g4_recharge_agg (
+>     metric_id      STRING,
+>     recharge_cnt   BIGINT,
+>     amount_sum     DECIMAL(18, 2),
+>     player_cnt     BIGINT,
+>     PRIMARY KEY (metric_id) NOT ENFORCED
+> ) WITH (
+>     'connector' = 'upsert-kafka',
+>     'topic' = 'gamestream.g4.recharge_agg',
+>     'properties.bootstrap.servers' = 'kafka:9092',
+>     'key.format' = 'json',
+>     'value.format' = 'json'
+> )[34;1m[INFO] Execute statement succeed.[0m
+
+Flink SQL> [34;1m[INFO] Execute statement succeed.[0m
+
+Flink SQL> [34;1m[INFO] Execute statement succeed.[0m
+
+Flink SQL> 
+> INSERT INTO kafka_g4_recharge_agg
+> SELECT
+>     CAST('g4_recharge' AS STRING) AS metric_id,
+>     CAST(COUNT(*) AS BIGINT) AS recharge_cnt,
+>     CAST(SUM(amount) AS DECIMAL(18, 2)) AS amount_sum,
+>     CAST(COUNT(DISTINCT player_id) AS BIGINT)[34;1m[INFO] Execute statement succeed.[0m
+
+Flink SQL> [g4] restored job RUNNING id=5e71911ff90391a1d4b9bbc251837334
+[g4] re-produce duplicate event_ids (post-restore; proves Rank state restored)
+[g4] after_restore_dup_replay OK agg={"metric_id": "g4_recharge", "recharge_cnt": 5, "amount_sum": 244, "player_cnt": 5}
+[g4] produce ONE new unique recharge (98.00) -> expect 6 / 342.00
+[g4] after_new_event OK agg={"metric_id": "g4_recharge", "recharge_cnt": 6, "amount_sum": 342, "player_cnt": 6}
+[g4] 10/10 write result + Doris load
+=== G4 checkpoint + idempotency result ===
+time_utc=2026-09-07T01:32:45Z
+job1=5f427702ae6ca072d625a183ff574419 job2_restored=5e71911ff90391a1d4b9bbc251837334
+group.id=gamestream-g4-cp-v1
+checkpoint_interval=10s state.backend=hashmap state.checkpoints.dir=file:///checkpoints
+compose_volume=./flink/checkpoints:/checkpoints (JM+TM)
+
+=== checkpoint (job1 before cancel) ===
+completed_count=1
+external_path=file:/checkpoints/5f427702ae6ca072d625a183ff574419/chk-1
+counts= {"restored": 0, "total": 2, "in_progress": 0, "completed": 1, "failed": 1}
+latest_completed= {"id": 1, "status": "COMPLETED", "external_path": "file:/checkpoints/5f427702ae6ca072d625a183ff574419/chk-1", "checkpointed_size": 24585, "state_size": 24585}
+
+=== aggregates ===
+before_cancel={"metric_id": "g4_recharge", "recharge_cnt": 5, "amount_sum": 244, "player_cnt": 5}
+after_restore_dup_replay={"metric_id": "g4_recharge", "recharge_cnt": 5, "amount_sum": 244, "player_cnt": 5}
+after_new_event={"metric_id": "g4_recharge", "recharge_cnt": 6, "amount_sum": 342, "player_cnt": 6}
+expected: before=5/244; after dups still 5/244; after new=6/342
+
+=== Kafka dedup audit (unique event_ids) ===
+dedup_rows= 6 unique_ids= 6
+ids= ['g4-r-01', 'g4-r-02', 'g4-r-03', 'g4-r-04', 'g4-r-05', 'g4-r-06']
+
+=== restored job checkpoints completed=4 ===
+
+=== Doris load from final Kafka agg (ALS + UNIQUE KEY; NOT EO-2PC) ===
+loaded ads.g4_recharge_di from kafka agg
+=== Doris ads.g4_recharge_di ===
+metric_id	recharge_cnt	amount_sum	player_cnt
+g4_recharge	6	342.00	6
+
+=== consistency class (honest) ===
+Flink checkpoint mode=EXACTLY_ONCE (operator state + Kafka source offsets)
+Kafka upsert sink=at-least-once + PK idempotent upsert (NOT transactional EO)
+Doris UNIQUE KEY=idempotent absorb of ALS retries (NOT claim end-to-end EO-2PC)
+
+=== OVERALL ===
+PASS cp_completed= 1
+before {'metric_id': 'g4_recharge', 'recharge_cnt': 5, 'amount_sum': 244, 'player_cnt': 5}
+after_dup {'metric_id': 'g4_recharge', 'recharge_cnt': 5, 'amount_sum': 244, 'player_cnt': 5}
+after_new {'metric_id': 'g4_recharge', 'recharge_cnt': 6, 'amount_sum': 342, 'player_cnt': 6}
+[g4] cancel restored job 5e71911ff90391a1d4b9bbc251837334
+[g4] OK saved docs/g4-checkpoint-idempotency-result.txt
