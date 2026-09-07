@@ -131,7 +131,7 @@ repo_dirty_summary() {
 
 # Echo ONLY token to stdout (OK:/MISMATCH:/MISSING:); details via logf
 # GameStream: pin is baseline — OK if HEAD == pin OR pin is ancestor of HEAD ("or later").
-# SQLGuard/DataPilot: exact short-SHA match required.
+# SQLGuard: exact short-SHA; GameStream/DataPilot: pin or later (ancestor).
 verify_repo_pin() {
   local name="$1" path="$2" expect="$3"
   if [[ ! -e "$path/.git" ]]; then
