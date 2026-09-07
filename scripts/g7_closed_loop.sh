@@ -208,7 +208,7 @@ run_fixture_path() {
   fi
   if [[ "$expect" == "SOFT_DOCUMENT" ]]; then
     ok=1
-    log "SOFT_DOCUMENT: recorded datapilot=$dp action=$action (schema strip probe; not a hard fail)"
+    log "SOFT_DOCUMENT: recorded datapilot=$dp action=$action (legacy soft probe; prefer expect_gate=BLOCK on SQLGuard >=1.1.1)"
   fi
   if [[ "$ok" != "1" ]]; then
     log "ERROR: unexpected gate (want $expect got datapilot=$dp action=$action)"
@@ -242,7 +242,7 @@ run_fixture_path() {
       fi
     fi
   elif [[ "$expect" == "SOFT_DOCUMENT" ]]; then
-    log "--- SOFT probe: skip Doris execute (document gate only) ---"
+    log "--- SOFT/legacy probe: skip Doris execute (document gate only) ---"
   else
     log "--- BLOCK path: skip Doris execute ---"
   fi

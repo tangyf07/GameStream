@@ -61,7 +61,7 @@ FIXTURES: list[dict[str, Any]] = [
     },
     {
         "path_id": "cross_db_same_name",
-        "prompt": "(probe) 跨库同名 hive.ads_dau_di — AST 是否保留 schema",
+        "prompt": "(negative) 跨库同名 hive.ads_dau_di — qualified identity 应 BLOCK",
         "metric_id": "ads_dau_di",
         "table": "hive.ads_dau_di",
         "sql": (
@@ -69,10 +69,9 @@ FIXTURES: list[dict[str, Any]] = [
             "FROM hive.ads_dau_di "
             "WHERE metric_id = 'ads_dau_di'"
         ),
-        # sql-write-gate strips schema → bare ads_dau_di may ALLOW/EXECUTE.
-        # Soft expect: record actual datapilot; closed-loop treats SOFT_* specially.
-        "expect_gate": "SOFT_DOCUMENT",
-        "note": "SQLGuard/sqlglot Table.name strips schema; hive.ads_dau_di → ads_dau_di",
+        # SQLGuard ≥1.1.1 keeps schema.table identity → hive.ads_dau_di not on allowlist → BLOCK
+        "expect_gate": "BLOCK",
+        "note": "v1.1.1 qualified table identity: hive.ads_dau_di ≠ ads.ads_dau_di / ads_dau_di",
     },
     {
         "path_id": "block_delete",

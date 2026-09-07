@@ -38,7 +38,7 @@ flowchart LR
    ~/g7-venv/bin/pip install -e "/mnt/c/Users/tangy/source/repos/sql-write-gate[mysql]"
    export PATH="$HOME/g7-venv/bin:$PATH"
    ```
-4. **启动 SQLGuard HTTP**（也可由 `scripts/g7_closed_loop.sh` 自动拉起）：
+4. **启动 SQLGuard HTTP**（需 **≥1.1.1**；也可由 `scripts/g7_closed_loop.sh` 自动拉起）：
    ```bash
    GS=/mnt/c/Users/tangy/source/repos/GameStream
    sql-write-gate serve --host 127.0.0.1 --port 8787 \
@@ -46,7 +46,7 @@ flowchart LR
      --catalog "$GS/config/sqlguard/g7_catalog.json" \
      --database "mysql://root@127.0.0.1:9030/ads"
    ```
-5. **探活**：`curl -s http://127.0.0.1:8787/healthz` → `product=SQLGuard` / `version=1.1.0`。
+5. **探活**：`curl -s http://127.0.0.1:8787/healthz` → `product=SQLGuard` / `version=1.1.1`。
 6. **跑闭环**：
    ```bash
    cp scripts/g7_closed_loop.sh /tmp/g7.sh && sed -i 's/\r$//' /tmp/g7.sh
@@ -91,10 +91,11 @@ python -m datapilot "DAU多少"
 ## Policy / Catalog 要点（strict）
 
 - `rules`: select **allow**；insert/update/delete/ddl **block**
-- `permissions.enforce: true`；表名以**裸名**为主（`ads_dau_di` 等），并冗余 `ads.ads_*` 双键（以防未来 AST 保留 qualifier）
+- `permissions.enforce: true`；catalog / allowlist 同时保留**裸名**与 **`ads.ads_*` 限定名**双键
 - **`hallucination.allow_unknown_tables: false`** / **`allow_unknown_columns: false`**（严格模式）
-- **限定名匹配**：`sql-write-gate`（sqlglot `Table.name`）把 `ads.ads_dau_di` **剥成裸名** `ads_dau_di` 再查 catalog/permissions。因此合法 `FROM ads.ads_*` 在 strict 下仍可 EXECUTE；catalog 裸名列齐全即可
-- **跨库同名局限**：`hive.ads_dau_di` 同样被剥成 `ads_dau_di`，门禁侧会 **ALLOW/EXECUTE**（见下方 SOFT 探针）；**不能**靠当前 SQLGuard 按 schema 拦截。真正隔离依赖 Doris 侧库权限 / 后续 G8+ 增强
+- **限定名身份（SQLGuard ≥1.1.1 @ f7bf971）**：AST 保留 `schema.table`（如 `ads.ads_dau_di`、`hive.ads_dau_di`），按完整限定名匹配 catalog/permissions
+- **合法 ads 限定名**：`FROM ads.ads_dau_di` → `datapilot=EXECUTE`（allowlist 命中）
+- **跨库同名**：`FROM hive.ads_dau_di` → `datapilot=BLOCK` / `rule_id=schema_hallucination`（`hive.ads_dau_di` 不在 allowlist；不再剥成裸名误放行）
 - `metric_id` / 表名与契约一致：`ads_dau_di`、`ads_pay_rate_di`、…
 
 契约未改；DataPilot / SQLGuard 继续消费同一 `metric_id`。
@@ -114,8 +115,8 @@ python -m datapilot "DAU多少"
 
 ## 样本路径（真实 transcript，摘自 `g7-closed-loop-result.txt`）
 
-运行时间：**2026-09-07 11:14:57 CST**；SQLGuard **1.1.0**；strict hallucination；ADS 探活各 **8** 行。  
-表述约定：写「**两个 SELECT 各返回 8 行**」，**不要**写成「EXECUTE×8」。
+运行时间：**2026-09-07 11:25:21 CST**（1.1.1 复测）；SQLGuard **1.1.1**（`f7bf971`）；strict hallucination；合法 DAU SELECT **8** 行。  
+表述约定：写「**SELECT 返回 8 行**」，**不要**写成「EXECUTE×8」。
 
 ### Path 1 — DAU（EXECUTE，SELECT 返回 8 行）
 
@@ -127,7 +128,7 @@ python -m datapilot "DAU多少"
   WHERE metric_id = 'ads_dau_di'
   ORDER BY dt, server_id
   ```
-- **Gate** (`POST /v1/check`): `datapilot=EXECUTE` / `action=ALLOW` / `rule_id=ok`
+- **Gate** (`POST /v1/check`): `datapilot=EXECUTE` / `action=ALLOW` / `rule_id=ok`；AST tables=`["ads.ads_dau_di"]`
 - **Execute** (`POST /v1/execute`): `executed=true`；该 SELECT **返回 8 行**
 - **Rows**（节选）:
   | dt | server_id | dau | metric_id |
@@ -175,11 +176,12 @@ python -m datapilot "DAU多少"
 - **SQL**: `SELECT dt FROM ads.ads_not_on_allowlist`
 - **Gate**: `datapilot=BLOCK` / `rule_id=schema_hallucination`（兼 `permission_denied`）
 
-### Path 5 — 跨库同名探针（SOFT / 文档）
+### Path 5 — 跨库同名 → BLOCK（SQLGuard 1.1.1）
 
-- **SQL**: `SELECT … FROM hive.ads_dau_di …`
-- **Gate**: `datapilot=EXECUTE` / `action=ALLOW`（AST tables=`["ads_dau_di"]`，**schema 被剥掉**）
-- **说明**: 不作为硬失败；记录局限，待 G8+ / 上游门禁增强
+- **SQL**: `SELECT dt, server_id, dau, metric_id FROM hive.ads_dau_di WHERE metric_id = 'ads_dau_di'`
+- **Gate**: `datapilot=BLOCK` / `action=BLOCK` / `rule_id=schema_hallucination`
+- **Evidence**: AST tables=`["hive.ads_dau_di"]`（限定名保留）；`unknown_tables=["hive.ads_dau_di"]`
+- **说明**: 1.1.0 曾剥 schema 误放行（SOFT）；**1.1.1 起硬 BLOCK**，作为负向验收路径
 
 ### Path 6 — DELETE → BLOCK
 
@@ -195,7 +197,7 @@ python -m datapilot "DAU多少"
 | 路径 | 作用 |
 |------|------|
 | `scripts/g7_closed_loop.sh` | 闭环编排 |
-| `scripts/g7_agent_fixtures.py` | 确定性 NL→SQL（含 negative / SOFT 探针） |
+| `scripts/g7_agent_fixtures.py` | 确定性 NL→SQL（含 negative / 跨库 BLOCK） |
 | `config/sqlguard/g7_policy.yaml` | SQLGuard 严格策略 |
 | `config/sqlguard/g7_catalog.json` | ADS catalog（裸名 + `ads.` 双键） |
 
