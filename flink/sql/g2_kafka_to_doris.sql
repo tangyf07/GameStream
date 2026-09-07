@@ -1,38 +1,27 @@
--- =============================================================================
--- GameStream G2: Kafka ODS → Flink (batch, bounded) → Doris ADS (JDBC)
--- Sink choice: JDBC to doris-fe:9030 (MySQL protocol). Flink does the transform;
--- Doris UNIQUE KEY REPLACE handles re-runs. Avoids heavier flink-doris-connector.
--- Run AFTER events are produced. Bounded Kafka source stops at latest offsets.
--- =============================================================================
+-- GameStream G2: Kafka ODS → Flink batch bounded → Doris ADS (JDBC)
+-- Fixes: event_time as STRING (avoid ISO-Z ROW parse drops); payload as STRING;
+--        TABLEAU mode; explicit INSERT jobs (not only STATEMENT SET).
 
 SET 'execution.runtime-mode' = 'batch';
 SET 'parallelism.default' = '1';
+SET 'sql-client.execution.result-mode' = 'TABLEAU';
 
 CREATE TABLE kafka_ods_player_events (
     event_id      STRING,
     event_type    STRING,
-    event_time    TIMESTAMP(3),
+    event_time    STRING,
     player_id     BIGINT,
     role_id       BIGINT,
     server_id     INT,
-    session_id    STRING,
-    payload       ROW<
-        dungeon_id INT,
-        amount_fen BIGINT,
-        online_sec INT,
-        client_version STRING,
-        device_os STRING,
-        channel STRING
-    >
+    session_id    STRING
 ) WITH (
     'connector' = 'kafka',
     'topic' = 'gamestream.ods.player_events',
     'properties.bootstrap.servers' = 'kafka:9092',
-    'properties.group.id' = 'gamestream-g2-ads',
+    'properties.group.id' = 'gamestream-g2-ads-v2',
     'scan.startup.mode' = 'earliest-offset',
     'scan.bounded.mode' = 'latest-offset',
     'format' = 'json',
-    'json.timestamp-format.standard' = 'ISO-8601',
     'json.ignore-parse-errors' = 'true'
 );
 
@@ -40,24 +29,19 @@ CREATE VIEW v_ods_clean AS
 SELECT
     event_id,
     event_type,
-    event_time,
-    CAST(event_time AS DATE) AS dt,
+    CAST(TO_TIMESTAMP(REPLACE(REPLACE(event_time, 'T', ' '), 'Z', '')) AS DATE) AS dt,
     player_id,
-    role_id,
-    server_id,
-    session_id,
-    payload.dungeon_id AS dungeon_id,
-    payload.amount_fen AS amount_fen
+    server_id
 FROM kafka_ods_player_events
 WHERE event_id IS NOT NULL
   AND player_id IS NOT NULL
   AND player_id > 0
+  AND event_time IS NOT NULL
   AND event_type IN (
       'login','create_role','enter_dungeon','clear_dungeon','death',
       'equip','enhance','recharge','gacha','friend','logout'
   );
 
--- Doris JDBC sinks (append in batch mode; UNIQUE KEY REPLACE on re-insert)
 CREATE TABLE ads_dau_di_jdbc (
     dt         DATE,
     server_id  INT,
@@ -65,14 +49,14 @@ CREATE TABLE ads_dau_di_jdbc (
     metric_id  STRING
 ) WITH (
     'connector' = 'jdbc',
-    'url' = 'jdbc:mysql://doris-fe:9030/ads?useSSL=false&allowPublicKeyRetrieval=true&rewriteBatchedStatements=true',
+    'url' = 'jdbc:mysql://doris-fe:9030/ads?useSSL=false&allowPublicKeyRetrieval=true&rewriteBatchedStatements=true&connectTimeout=10000&socketTimeout=60000',
     'table-name' = 'ads_dau_di',
     'username' = 'root',
     'password' = '',
     'driver' = 'com.mysql.cj.jdbc.Driver',
-    'sink.buffer-flush.max-rows' = '100',
+    'sink.buffer-flush.max-rows' = '50',
     'sink.buffer-flush.interval' = '1s',
-    'sink.max-retries' = '5'
+    'sink.max-retries' = '8'
 );
 
 CREATE TABLE ads_pay_rate_di_jdbc (
@@ -84,17 +68,18 @@ CREATE TABLE ads_pay_rate_di_jdbc (
     metric_id  STRING
 ) WITH (
     'connector' = 'jdbc',
-    'url' = 'jdbc:mysql://doris-fe:9030/ads?useSSL=false&allowPublicKeyRetrieval=true&rewriteBatchedStatements=true',
+    'url' = 'jdbc:mysql://doris-fe:9030/ads?useSSL=false&allowPublicKeyRetrieval=true&rewriteBatchedStatements=true&connectTimeout=10000&socketTimeout=60000',
     'table-name' = 'ads_pay_rate_di',
     'username' = 'root',
     'password' = '',
     'driver' = 'com.mysql.cj.jdbc.Driver',
-    'sink.buffer-flush.max-rows' = '100',
+    'sink.buffer-flush.max-rows' = '50',
     'sink.buffer-flush.interval' = '1s',
-    'sink.max-retries' = '5'
+    'sink.max-retries' = '8'
 );
 
-BEGIN STATEMENT SET;
+-- Debug count (visible in sql-client -f with TABLEAU)
+SELECT COUNT(*) AS kafka_cnt FROM kafka_ods_player_events;
 
 INSERT INTO ads_dau_di_jdbc
 SELECT
@@ -116,5 +101,3 @@ SELECT
     CAST('ads_pay_rate_di' AS STRING) AS metric_id
 FROM v_ods_clean
 GROUP BY dt, server_id;
-
-END;

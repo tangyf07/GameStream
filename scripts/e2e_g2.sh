@@ -38,6 +38,12 @@ for i in $(seq 1 30); do
   sleep 2
 done
 
+for i in $(seq 1 30); do
+  if docker exec gs-doris-fe mysql -h127.0.0.1 -P9030 -uroot -e "SHOW BACKENDS;" >/dev/null 2>&1; then
+    break
+  fi
+  sleep 3
+done
 docker exec gs-doris-fe mysql -h127.0.0.1 -P9030 -uroot -e "SHOW BACKENDS;" >/dev/null
 
 echo "[g2] 2/6 ensure Flink usrlib jars visible"

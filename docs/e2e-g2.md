@@ -1,6 +1,6 @@
 # GameStream G2 E2E — Simulator → Kafka → Flink → Doris ADS
 
-**Status:** verified on WSL single-node Docker (~7.6Gi RAM) with small event volume.  
+**Status:** **G2 verified** on WSL single-node Docker (~7.6Gi RAM) with small event volume.  
 **Not in scope:** G3–G6 watermark/checkpoint failure drills, fabricated Lag/throughput/P95, Spark/Iceberg/K8s.
 
 ## Topology
@@ -63,10 +63,17 @@ ORDER BY dt, server_id;
 
 ## Real query result
 
-_(filled by `scripts/e2e_g2.sh` → `docs/e2e-g2-query-result.txt`; paste below after run)_
+WSL run 2026-09-07 (UTC+8): Simulator 500 players / 3000 events → Kafka → Flink batch jobs → Doris.  
+Full paste: `docs/e2e-g2-query-result.txt`.
 
 ```
-(pending e2e run)
+dt          server_id  dau  metric_id
+2026-09-06  1          125  ads_dau_di
+2026-09-06  2          135  ads_dau_di
+2026-09-06  3          114  ads_dau_di
+2026-09-06  4          125  ads_dau_di
+...
+ads_dau_di rows=8  ads_pay_rate_di rows=8  (kafka_cnt=3000)
 ```
 
 ## Known pitfalls (honest)
@@ -83,3 +90,5 @@ _(filled by `scripts/e2e_g2.sh` → `docs/e2e-g2-query-result.txt`; paste below 
 9. **`docker exec` sql-client classpath**: entrypoint sets `/opt/flink/usrlib` on JM/TM start, but `docker exec ... sql-client.sh` does **not**. Always pass `-j` for Kafka/JDBC/MySQL jars (see `scripts/e2e_g2.sh`).
 10. **Doris 3.0 Unique DDL**: avoid legacy `REPLACE NULL_DEFAULT`; use plain `DEFAULT "0"` column defs for G2 demo tables (`sql/ddl/doris_ads_g2.sql`).
 11. **`/mnt/c` script corruption**: trailing `r` on lines ending with `...manager` has been observed; copy scripts to `/tmp` before bash.
+
+9. **Flink sql-client `-f`**: set `sql-client.execution.result-mode=TABLEAU`; avoid nested ROW payload (extra fields drop whole records with ignore-parse-errors). Prefer `event_time` STRING + `TO_TIMESTAMP`.
