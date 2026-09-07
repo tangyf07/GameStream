@@ -1,0 +1,26 @@
+# GameStream G7 — SQLGuard policy for DataPilot / closed-loop ADS reads.
+# Permissions keys = bare table names (no ads.* wildcard). Aligns with docs/datapilot_contract.md.
+environment: gamestream_g7
+rules:
+  select: allow
+  insert: block
+  update: block
+  delete: block
+  ddl: block
+limits:
+  update_rows: 100
+  delete_rows: 50
+permissions:
+  enforce: true
+  tables:
+    ads_dau_di: [select]
+    ads_retention_nd: [select]
+    ads_pay_rate_di: [select]
+    ads_arpu_di: [select]
+    ads_online_duration_di: [select]
+    ads_dungeon_clear_rate_di: [select]
+    ads_churn_di: [select]
+hallucination:
+  # Integration-friendly: schema-qualified ads.ads_* still resolves to bare table names.
+  allow_unknown_tables: true
+  allow_unknown_columns: true

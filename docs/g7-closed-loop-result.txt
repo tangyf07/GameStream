@@ -1,0 +1,175 @@
+=== GameStream G7 closed loop ===
+time=2026-09-07 10:39:39 CST
+root=/mnt/c/Users/tangy/source/repos/GameStream
+doris=mysql://root@127.0.0.1:9030/ads
+policy=/mnt/c/Users/tangy/source/repos/GameStream/config/sqlguard/g7_policy.yaml
+catalog=/mnt/c/Users/tangy/source/repos/GameStream/config/sqlguard/g7_catalog.json
+guard_url=http://127.0.0.1:8787
+mode=fixture
+
+=== 0) Doris ADS probe ===
+ads_dau_di rows=8
+ads_pay_rate_di rows=8
+
+[guard] starting serve on 127.0.0.1:8787 ...
+[guard] up pid=79864
+{"ok": true, "product": "SQLGuard", "version": "1.1.0", "package": "sql-write-gate"}
+=== fixture closed-loop paths (Agent-shaped NL→SQL→SQLGuard→Doris) ===
+======== PATH: dau ========
+Prompt: DAU多少？按日期和服区分组
+metric_id: ads_dau_di
+SQL: SELECT dt, server_id, dau, metric_id FROM ads.ads_dau_di WHERE metric_id = 'ads_dau_di' ORDER BY dt, server_id
+expect_gate: EXECUTE
+gate_mode: http POST /v1/check
+gate_result: {"allowed": true, "rule_id": "ok", "message": "只读 SELECT，绕过写库门禁", "sql": "SELECT dt, server_id, dau, metric_id FROM ads.ads_dau_di WHERE metric_id = 'ads_dau_di' ORDER BY dt, server_id", "action": "ALLOW", "risk": "low", "reason": "只读 SELECT，绕过写库门禁", "evidence": {"ast_patterns": {"tables": ["ads_dau_di"], "columns": ["dt", "server_id", "dau", "metric_id"], "joins": [], "cartesian_joins": 0, "missing_where": false, "tautology_where": false, "full_table_write": false, "is_ddl": false, "is_dml": false, "dangerous_flags": []}, "permissions": {"tables": ["ads_dau_di"], "operation": "select", "checked": true}, "explain_cost": {"skipped": true, "reason": "explain disabled / no threshold"}, "environment": {"environment": "gamestream_g7", "operation": "select", "policy_rule": "allow"}}, "operation": "select", "table": "ads_dau_di", "estimated_rows": null, "approval_id": null, "risk_score": 0, "risk_factors": [], "executed": false, "product": "SQLGuard", "datapilot": "EXECUTE"}
+datapilot=EXECUTE action=ALLOW
+--- EXECUTE path: run SELECT on Doris ---
+http POST /v1/execute: {"allowed": true, "rule_id": "ok", "message": "只读 SELECT，绕过写库门禁", "sql": "SELECT dt, server_id, dau, metric_id FROM ads.ads_dau_di WHERE metric_id = 'ads_dau_di' ORDER BY dt, server_id", "action": "ALLOW", "risk": "low", "reason": "只读 SELECT，绕过写库门禁", "evidence": {"ast_patterns": {"tables": ["ads_dau_di"], "columns": ["dt", "server_id", "dau", "metric_id"], "joins": [], "cartesian_joins": 0, "missing_where": false, "tautology_where": false, "full_table_write": false, "is_ddl": false, "is_dml": false, "dangerous_flags": []}, "permissions": {"tables": ["ads_dau_di"], "operation": "select", "checked": true}, "explain_cost": {"skipped": true, "reason": "explain disabled / no threshold"}, "environment": {"environment": "gamestream_g7", "operation": "select", "policy_rule": "allow"}}, "operation": "select", "table": "ads_dau_di", "estimated_rows": null, "approval_id": null, "risk_score": 0, "risk_factors": [], "executed": true, "product": "SQLGuard", "datapilot": "EXECUTE", "rows": [["2026-09-06", 1, 125, "ads_dau_di"], ["2026-09-06", 2, 135, "ads_dau_di"], ["2026-09-06", 3, 114, "ads_dau_di"], ["2026-09-06", 4, 125, "ads_dau_di"], ["2026-09-07", 1, 26, "ads_dau_di"], ["2026-09-07", 2, 22, "ads_dau_di"], ["2026-09-07", 3, 27, "ads_dau_di"], ["2026-09-07", 4, 20, "ads_dau_di"]], "rowcount": 8}
+rows_from_sqlguard_execute:
+{
+  "rowcount": 8,
+  "rows": [
+    [
+      "2026-09-06",
+      1,
+      125,
+      "ads_dau_di"
+    ],
+    [
+      "2026-09-06",
+      2,
+      135,
+      "ads_dau_di"
+    ],
+    [
+      "2026-09-06",
+      3,
+      114,
+      "ads_dau_di"
+    ],
+    [
+      "2026-09-06",
+      4,
+      125,
+      "ads_dau_di"
+    ],
+    [
+      "2026-09-07",
+      1,
+      26,
+      "ads_dau_di"
+    ],
+    [
+      "2026-09-07",
+      2,
+      22,
+      "ads_dau_di"
+    ],
+    [
+      "2026-09-07",
+      3,
+      27,
+      "ads_dau_di"
+    ],
+    [
+      "2026-09-07",
+      4,
+      20,
+      "ads_dau_di"
+    ]
+  ]
+}
+
+======== PATH: pay_rate ========
+Prompt: 各服付费率是多少？给出 DAU、付费人数和付费率
+metric_id: ads_pay_rate_di
+SQL: SELECT dt, server_id, dau, pay_users, pay_rate, metric_id FROM ads.ads_pay_rate_di WHERE metric_id = 'ads_pay_rate_di' ORDER BY dt, server_id
+expect_gate: EXECUTE
+gate_mode: http POST /v1/check
+gate_result: {"allowed": true, "rule_id": "ok", "message": "只读 SELECT，绕过写库门禁", "sql": "SELECT dt, server_id, dau, pay_users, pay_rate, metric_id FROM ads.ads_pay_rate_di WHERE metric_id = 'ads_pay_rate_di' ORDER BY dt, server_id", "action": "ALLOW", "risk": "low", "reason": "只读 SELECT，绕过写库门禁", "evidence": {"ast_patterns": {"tables": ["ads_pay_rate_di"], "columns": ["dt", "server_id", "dau", "pay_users", "pay_rate", "metric_id"], "joins": [], "cartesian_joins": 0, "missing_where": false, "tautology_where": false, "full_table_write": false, "is_ddl": false, "is_dml": false, "dangerous_flags": []}, "permissions": {"tables": ["ads_pay_rate_di"], "operation": "select", "checked": true}, "explain_cost": {"skipped": true, "reason": "explain disabled / no threshold"}, "environment": {"environment": "gamestream_g7", "operation": "select", "policy_rule": "allow"}}, "operation": "select", "table": "ads_pay_rate_di", "estimated_rows": null, "approval_id": null, "risk_score": 0, "risk_factors": [], "executed": false, "product": "SQLGuard", "datapilot": "EXECUTE"}
+datapilot=EXECUTE action=ALLOW
+--- EXECUTE path: run SELECT on Doris ---
+http POST /v1/execute: {"allowed": true, "rule_id": "ok", "message": "只读 SELECT，绕过写库门禁", "sql": "SELECT dt, server_id, dau, pay_users, pay_rate, metric_id FROM ads.ads_pay_rate_di WHERE metric_id = 'ads_pay_rate_di' ORDER BY dt, server_id", "action": "ALLOW", "risk": "low", "reason": "只读 SELECT，绕过写库门禁", "evidence": {"ast_patterns": {"tables": ["ads_pay_rate_di"], "columns": ["dt", "server_id", "dau", "pay_users", "pay_rate", "metric_id"], "joins": [], "cartesian_joins": 0, "missing_where": false, "tautology_where": false, "full_table_write": false, "is_ddl": false, "is_dml": false, "dangerous_flags": []}, "permissions": {"tables": ["ads_pay_rate_di"], "operation": "select", "checked": true}, "explain_cost": {"skipped": true, "reason": "explain disabled / no threshold"}, "environment": {"environment": "gamestream_g7", "operation": "select", "policy_rule": "allow"}}, "operation": "select", "table": "ads_pay_rate_di", "estimated_rows": null, "approval_id": null, "risk_score": 0, "risk_factors": [], "executed": true, "product": "SQLGuard", "datapilot": "EXECUTE", "rows": [["2026-09-06", 1, 125, 17, 0.136, "ads_pay_rate_di"], ["2026-09-06", 2, 135, 15, 0.1111111111111111, "ads_pay_rate_di"], ["2026-09-06", 3, 114, 6, 0.05263157894736842, "ads_pay_rate_di"], ["2026-09-06", 4, 125, 9, 0.072, "ads_pay_rate_di"], ["2026-09-07", 1, 26, 1, 0.038461538461538464, "ads_pay_rate_di"], ["2026-09-07", 2, 22, 1, 0.045454545454545456, "ads_pay_rate_di"], ["2026-09-07", 3, 27, 0, 0.0, "ads_pay_rate_di"], ["2026-09-07", 4, 20, 1, 0.05, "ads_pay_rate_di"]], "rowcount": 8}
+rows_from_sqlguard_execute:
+{
+  "rowcount": 8,
+  "rows": [
+    [
+      "2026-09-06",
+      1,
+      125,
+      17,
+      0.136,
+      "ads_pay_rate_di"
+    ],
+    [
+      "2026-09-06",
+      2,
+      135,
+      15,
+      0.1111111111111111,
+      "ads_pay_rate_di"
+    ],
+    [
+      "2026-09-06",
+      3,
+      114,
+      6,
+      0.05263157894736842,
+      "ads_pay_rate_di"
+    ],
+    [
+      "2026-09-06",
+      4,
+      125,
+      9,
+      0.072,
+      "ads_pay_rate_di"
+    ],
+    [
+      "2026-09-07",
+      1,
+      26,
+      1,
+      0.038461538461538464,
+      "ads_pay_rate_di"
+    ],
+    [
+      "2026-09-07",
+      2,
+      22,
+      1,
+      0.045454545454545456,
+      "ads_pay_rate_di"
+    ],
+    [
+      "2026-09-07",
+      3,
+      27,
+      0,
+      0.0,
+      "ads_pay_rate_di"
+    ],
+    [
+      "2026-09-07",
+      4,
+      20,
+      1,
+      0.05,
+      "ads_pay_rate_di"
+    ]
+  ]
+}
+
+======== PATH: block_delete ========
+Prompt: (negative) 清空 DAU 表
+metric_id: ads_dau_di
+SQL: DELETE FROM ads.ads_dau_di
+expect_gate: BLOCK
+gate_mode: http POST /v1/check
+gate_result: {"allowed": false, "rule_id": "delete_without_where", "message": "DELETE without a WHERE clause is forbidden (full-table delete on ads_dau_di)", "sql": "DELETE FROM ads.ads_dau_di", "action": "BLOCK", "risk": "critical", "reason": "DELETE without a WHERE clause is forbidden (full-table delete on ads_dau_di)", "evidence": {"destructive": {"table": "ads_dau_di", "has_where": false}, "ast_patterns": {"tables": ["ads_dau_di"], "columns": [], "joins": [], "cartesian_joins": 0, "missing_where": true, "tautology_where": false, "full_table_write": true, "is_ddl": false, "is_dml": true, "dangerous_flags": ["full_table_write"]}, "permissions": {"table": "ads_dau_di", "operation": "delete", "allowed_ops": ["select"]}, "freshness": {"table": "ads_dau_di", "stale": false, "writable": false}, "blast_radius": {"skipped": true, "reason": "no connection to estimate rows"}, "explain_cost": {"skipped": true, "reason": "explain disabled / no threshold"}, "environment": {"environment": "gamestream_g7", "operation": "delete", "policy_rule": "block"}, "table": "ads_dau_di", "has_where": false}, "operation": "delete", "table": "ads_dau_di", "estimated_rows": null, "approval_id": null, "risk_score": 100, "risk_factors": ["block", "delete", "full_table_write", "missing_where", "permission_denied", "expired_partition", "environment_block"], "executed": false, "product": "SQLGuard", "datapilot": "BLOCK"}
+datapilot=BLOCK action=BLOCK
+--- BLOCK path: skip Doris execute ---
+
+=== DONE 2026-09-07 10:39:43 CST ===
+result_file=docs/g7-closed-loop-result.txt
