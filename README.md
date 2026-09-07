@@ -32,11 +32,11 @@ flowchart LR
 | OLAP | Parquet + DuckDB | **Doris** FE/BE（HTTP `:8030` / MySQL `:9030`） |
 | 端到端 | lite ADS 在 DuckDB | **G2 已验证**：Simulator→Kafka→Flink→Doris ADS（见 [`docs/e2e-g2.md`](docs/e2e-g2.md)） |
 
-**勿夸大：** G1 = 组件可起 + 端口可达。**G2 = 有界 E2E**（小流量 Simulator→Kafka→Flink→Doris ADS，可复跑 `e2e_g2.sh`）。**G3–G5 = 独立演练**（watermark / checkpoint / kill-TM），**不是**与 G2 绑在一起的「持续 Doris 主流水线」。**G6 已做**：Docker 栈实测吞吐/Lag/Checkpoint/E2E P95/反压（见 [`docs/g6-bench.md`](docs/g6-bench.md)，数字只引自 `bench/results/g6_*.json`）。**G7 已做**：NL/Agent→SQLGuard→Doris ADS 闭环（strict hallucination；见 [`docs/g7-closed-loop.md`](docs/g7-closed-loop.md)）——消费**已有** ADS 行，不负责灌数。**尚未统一**「持续 Doris 主流水线 + 问数」（为 G8 铺路，**本仓未实现 G8**）。**未宣称** 倾斜专项、编造 SLA、K8s/Spark/Iceberg 生产部署。lite 与 prod **同口径**（同一套 `metric_id`）。
+**勿夸大：** G1 = 组件可起 + 端口可达。**G2 = 有界 E2E**（batch + bounded Kafka → 一次性 Doris ADS，可复跑 `e2e_g2.sh`，作对照保留）。**G3–G5 = 独立演练**（watermark / checkpoint / kill-TM）；**G8 已把它们折进同一条持续 Doris ADS 主流水线**（见 [`docs/g8-continuous-mainline.md`](docs/g8-continuous-mainline.md)）。**G6 已做**：Docker 栈实测吞吐/Lag/Checkpoint/E2E P95/反压（见 [`docs/g6-bench.md`](docs/g6-bench.md)，数字只引自 `bench/results/g6_*.json`；G8 后稳态 bench 另做，不编造）。**G7 已做**：NL/Agent→SQLGuard→Doris ADS 闭环（strict hallucination；见 [`docs/g7-closed-loop.md`](docs/g7-closed-loop.md)）——消费**已有** ADS 行，不负责灌数。**未宣称** 倾斜专项、编造 SLA、K8s/Spark/Iceberg 生产部署、端到端 EO-2PC。lite 与 prod **同口径**（同一套 `metric_id`）。
 
 ## 三仓固化验收
 
-**三仓固化验收**：[`docs/suite-acceptance.md`](docs/suite-acceptance.md)（GameStream `2253b25`+ / SQLGuard `7dc85dd`=1.1.2 / DataPilot `e3e603d`；**NO G8**）。
+**三仓固化验收**：[`docs/suite-acceptance.md`](docs/suite-acceptance.md)（GameStream `2253b25`+ / SQLGuard `7dc85dd`=1.1.2 / DataPilot `e3e603d`；suite 脚本仍标 NO G8 固化边界；**G8 主流水线已另提交**，见下文）。
 
 细节与状态语义见文档；跑：`bash scripts/suite_acceptance.sh`（WSL 请先 `sed` 去 CRLF）。报告：[`docs/suite-acceptance-result.txt`](docs/suite-acceptance-result.txt)。
 
@@ -103,7 +103,17 @@ cp scripts/g7_closed_loop.sh /tmp/g7.sh && sed -i 's/\r$//' /tmp/g7.sh
 GAMESTREAM_ROOT=/mnt/c/Users/tangy/source/repos/GameStream MODE=fixture bash /tmp/g7.sh
 ```
 
-细节：[`docs/g7-closed-loop.md`](docs/g7-closed-loop.md)（fixture Prompt→SQL→`/v1/check|/v1/execute`→ADS 行；strict `allow_unknown_*=false`；可选 DataPilot）。合法 ADS SELECT **各返回若干行**（见 result transcript，勿写「EXECUTE×N」）。**不含** 新 UI / 编造指标 / G8。
+细节：[`docs/g7-closed-loop.md`](docs/g7-closed-loop.md)（fixture Prompt→SQL→`/v1/check|/v1/execute`→ADS 行；strict `allow_unknown_*=false`；可选 DataPilot）。合法 ADS SELECT **各返回若干行**（见 result transcript，勿写「EXECUTE×N」）。**不含** 新 UI / 编造指标（灌数见 G8）。
+
+
+## G8 持续 Doris ADS 主流水线（WSL）
+
+```bash
+cp scripts/g8_continuous_mainline.sh /tmp/g8.sh && sed -i 's/\r$//' /tmp/g8.sh
+GAMESTREAM_ROOT=/mnt/c/Users/tangy/source/repos/GameStream bash /tmp/g8.sh
+```
+
+细节：[`docs/g8-continuous-mainline.md`](docs/g8-continuous-mainline.md)（Kafka→清洗/`event_id` 去重→日 DAU+付费率→upsert-kafka 持续流→Doris UNIQUE KEY 物化；同 job kill-TM 恢复不双计）。**对照 G2 有界批**；G3–G5 折入同一 pipeline。Flink JDBC MySQL upsert 方言 Doris 拒收故不用；**不**宣称 EO-2PC。无编造 bench 数字。
 
 ## 事件与分层
 

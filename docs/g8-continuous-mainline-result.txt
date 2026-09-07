@@ -1,0 +1,47 @@
+=== G8 Continuous Doris ADS mainline result ===
+timestamp_utc=2026-09-07T04:01:01Z
+job_id=d9662fc46977046e7ff35453824140ba
+topic_in=gamestream.g8.ods.events topics_ads=gamestream.g8.ads_dau,gamestream.g8.ads_pay_rate group=gamestream-g8-ads-v1
+dt=2026-09-07 server_id=1
+checkpoint_completed_before_kill=8 path=file:/checkpoints/d9662fc46977046e7ff35453824140ba/chk-8
+checkpoint_completed_after_recover=20
+tm_kill_rc=0 tm_start_fallback=1
+
+--- ADS snapshots (Doris after kafka→UNIQUE KEY materialize) ---
+after_batch1(expect 6 1):     6 1 0.16666666666666666
+after_batch2(expect 8 2):     8 2 0.25
+after_failover(expect ~8 2):  8 2 0.25
+after_dup_replay(expect 8 2): 8 2 0.25
+after_batch3(expect 10 2):    10 2 0.2
+
+--- Doris ads_dau_di (dt=2026-09-07 server_id=1) ---
+dt	server_id	dau	metric_id
+2026-09-07	1	10	ads_dau_di
+
+--- Doris ads_pay_rate_di (dt=2026-09-07 server_id=1) ---
+dt	server_id	dau	pay_users	pay_rate	metric_id
+2026-09-07	1	10	2	0.2	ads_pay_rate_di
+
+--- job transitions ---
+2026-09-07T03:57:23Z job RUNNING id=d9662fc46977046e7ff35453824140ba
+2026-09-07T03:58:05Z ads_after_batch1=6 1 0.16666666666666666
+2026-09-07T03:58:46Z ads_after_batch2=8 2 0.25
+2026-09-07T03:58:46Z checkpoint_completed=8 path=file:/checkpoints/d9662fc46977046e7ff35453824140ba/chk-8
+2026-09-07T03:58:46Z pre_kill job_state=RUNNING
+2026-09-07T03:58:46Z docker_kill_rc=0
+2026-09-07T03:58:49Z job_state_transition  -> RUNNING (tm=exited slots=2 tms=1)
+2026-09-07T03:59:07Z tm_start_fallback=1 after_sec=15
+2026-09-07T03:59:08Z tm_back slots=2 tms=1
+2026-09-07T03:59:08Z job_recovered RUNNING after TM kill
+2026-09-07T03:59:33Z ads_after_failover=8 2 0.25
+2026-09-07T04:00:14Z ads_after_dup=8 2 0.25
+2026-09-07T04:00:56Z ads_after_batch3=10 2 0.2
+
+--- sink honesty ---
+Flink checkpoint mode=EXACTLY_ONCE (internal).
+Continuous Flink sink = upsert-kafka (ALS + PK).
+Doris ADS = plain INSERT on UNIQUE KEY (ALS replace).
+Flink JDBC MySQL upsert (ON DUPLICATE KEY UPDATE) rejected by Doris FE — not used.
+NOT end-to-end EO-2PC.
+
+OVERALL: PASS
