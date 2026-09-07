@@ -1,5 +1,8 @@
-# GameStream G7 — SQLGuard policy for DataPilot / closed-loop ADS reads.
-# Permissions keys = bare table names (no ads.* wildcard). Aligns with docs/datapilot_contract.md.
+# GameStream G7 — SQLGuard policy for DataPilot / closed-loop ADS reads (strict).
+# Permissions / catalog keys = bare table names. sql-write-gate AST (sqlglot Table.name)
+# strips schema qualifiers: ads.ads_dau_di → ads_dau_di. So dual ads.* keys are optional
+# aliases only; bare allowlist is authoritative. Cross-db hive.ads_dau_di likewise becomes
+# bare ads_dau_di (documented limitation — gate does not retain schema for hallucination).
 environment: gamestream_g7
 rules:
   select: allow
@@ -14,13 +17,20 @@ permissions:
   enforce: true
   tables:
     ads_dau_di: [select]
+    ads.ads_dau_di: [select]
     ads_retention_nd: [select]
+    ads.ads_retention_nd: [select]
     ads_pay_rate_di: [select]
+    ads.ads_pay_rate_di: [select]
     ads_arpu_di: [select]
+    ads.ads_arpu_di: [select]
     ads_online_duration_di: [select]
+    ads.ads_online_duration_di: [select]
     ads_dungeon_clear_rate_di: [select]
+    ads.ads_dungeon_clear_rate_di: [select]
     ads_churn_di: [select]
+    ads.ads_churn_di: [select]
 hallucination:
-  # Integration-friendly: schema-qualified ads.ads_* still resolves to bare table names.
-  allow_unknown_tables: true
-  allow_unknown_columns: true
+  # Strict: unknown table/column → BLOCK (was true for early G7 integration).
+  allow_unknown_tables: false
+  allow_unknown_columns: false

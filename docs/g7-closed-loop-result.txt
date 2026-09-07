@@ -1,5 +1,5 @@
 === GameStream G7 closed loop ===
-time=2026-09-07 10:39:39 CST
+time=2026-09-07 11:14:57 CST
 root=/mnt/c/Users/tangy/source/repos/GameStream
 doris=mysql://root@127.0.0.1:9030/ads
 policy=/mnt/c/Users/tangy/source/repos/GameStream/config/sqlguard/g7_policy.yaml
@@ -12,7 +12,7 @@ ads_dau_di rows=8
 ads_pay_rate_di rows=8
 
 [guard] starting serve on 127.0.0.1:8787 ...
-[guard] up pid=79864
+[guard] up pid=127010
 {"ok": true, "product": "SQLGuard", "version": "1.1.0", "package": "sql-write-gate"}
 === fixture closed-loop paths (Agent-shaped NL→SQL→SQLGuard→Doris) ===
 ======== PATH: dau ========
@@ -161,6 +161,37 @@ rows_from_sqlguard_execute:
   ]
 }
 
+======== PATH: block_unknown_column ========
+Prompt: (negative) 查询不存在的列 not_a_real_col
+metric_id: ads_dau_di
+SQL: SELECT dt, server_id, not_a_real_col FROM ads.ads_dau_di
+expect_gate: BLOCK
+gate_mode: http POST /v1/check
+gate_result: {"allowed": false, "rule_id": "schema_hallucination", "message": "Schema hallucination: unknown column(s) ['not_a_real_col'] for tables ['ads_dau_di']; known columns ['dau', 'dt', 'metric_id', 'server_id']", "sql": "SELECT dt, server_id, not_a_real_col FROM ads.ads_dau_di", "action": "BLOCK", "risk": "medium", "reason": "Schema hallucination: unknown column(s) ['not_a_real_col'] for tables ['ads_dau_di']; known columns ['dau', 'dt', 'metric_id', 'server_id']", "evidence": {"ast_patterns": {"tables": ["ads_dau_di"], "columns": ["dt", "server_id", "not_a_real_col"], "joins": [], "cartesian_joins": 0, "missing_where": false, "tautology_where": false, "full_table_write": false, "is_ddl": false, "is_dml": false, "dangerous_flags": []}, "schema": {"unknown_columns": ["not_a_real_col"], "tables": ["ads_dau_di"]}, "permissions": {"tables": ["ads_dau_di"], "operation": "select", "checked": true}, "explain_cost": {"skipped": true, "reason": "explain disabled / no threshold"}, "environment": {"environment": "gamestream_g7", "operation": "select", "policy_rule": "allow"}, "unknown_columns": ["not_a_real_col"], "tables": ["ads_dau_di"]}, "operation": "select", "table": "ads_dau_di", "estimated_rows": null, "approval_id": null, "risk_score": 100, "risk_factors": ["block", "schema_hallucination"], "executed": false, "product": "SQLGuard", "datapilot": "BLOCK"}
+datapilot=BLOCK action=BLOCK
+--- BLOCK path: skip Doris execute ---
+
+======== PATH: block_unknown_table ========
+Prompt: (negative) 查询未在 allowlist 的表
+metric_id: None
+SQL: SELECT dt FROM ads.ads_not_on_allowlist
+expect_gate: BLOCK
+gate_mode: http POST /v1/check
+gate_result: {"allowed": false, "rule_id": "schema_hallucination", "message": "Schema hallucination: unknown table(s) ['ads_not_on_allowlist'] not in catalog allowlist ['ads.ads_arpu_di', 'ads.ads_churn_di', 'ads.ads_dau_di', 'ads.ads_dungeon_clear_rate_di', 'ads.ads_online_duration_di', 'ads.ads_pay_rate_di', 'ads.ads_retention_nd', 'ads_arpu_di', 'ads_churn_di', 'ads_dau_di', 'ads_dungeon_clear_rate_di', 'ads_online_duration_di', 'ads_pay_rate_di', 'ads_retention_nd']", "sql": "SELECT dt FROM ads.ads_not_on_allowlist", "action": "BLOCK", "risk": "medium", "reason": "Schema hallucination: unknown table(s) ['ads_not_on_allowlist'] not in catalog allowlist ['ads.ads_arpu_di', 'ads.ads_churn_di', 'ads.ads_dau_di', 'ads.ads_dungeon_clear_rate_di', 'ads.ads_online_duration_di', 'ads.ads_pay_rate_di', 'ads.ads_retention_nd', 'ads_arpu_di', 'ads_churn_di', 'ads_dau_di', 'ads_dungeon_clear_rate_di', 'ads_online_duration_di', 'ads_pay_rate_di', 'ads_retention_nd']", "evidence": {"ast_patterns": {"tables": ["ads_not_on_allowlist"], "columns": ["dt"], "joins": [], "cartesian_joins": 0, "missing_where": false, "tautology_where": false, "full_table_write": false, "is_ddl": false, "is_dml": false, "dangerous_flags": []}, "schema": {"unknown_tables": ["ads_not_on_allowlist"], "known_tables": ["ads.ads_arpu_di", "ads.ads_churn_di", "ads.ads_dau_di", "ads.ads_dungeon_clear_rate_di", "ads.ads_online_duration_di", "ads.ads_pay_rate_di", "ads.ads_retention_nd", "ads_arpu_di", "ads_churn_di", "ads_dau_di", "ads_dungeon_clear_rate_di", "ads_online_duration_di", "ads_pay_rate_di", "ads_retention_nd"], "cte_aliases": []}, "permissions": {"table": "ads_not_on_allowlist", "operation": "select", "allowed_tables": ["ads.ads_arpu_di", "ads.ads_churn_di", "ads.ads_dau_di", "ads.ads_dungeon_clear_rate_di", "ads.ads_online_duration_di", "ads.ads_pay_rate_di", "ads.ads_retention_nd", "ads_arpu_di", "ads_churn_di", "ads_dau_di", "ads_dungeon_clear_rate_di", "ads_online_duration_di", "ads_pay_rate_di", "ads_retention_nd"]}, "explain_cost": {"skipped": true, "reason": "explain disabled / no threshold"}, "environment": {"environment": "gamestream_g7", "operation": "select", "policy_rule": "allow"}, "unknown_tables": ["ads_not_on_allowlist"], "known_tables": ["ads.ads_arpu_di", "ads.ads_churn_di", "ads.ads_dau_di", "ads.ads_dungeon_clear_rate_di", "ads.ads_online_duration_di", "ads.ads_pay_rate_di", "ads.ads_retention_nd", "ads_arpu_di", "ads_churn_di", "ads_dau_di", "ads_dungeon_clear_rate_di", "ads_online_duration_di", "ads_pay_rate_di", "ads_retention_nd"], "cte_aliases": []}, "operation": "select", "table": "ads_not_on_allowlist", "estimated_rows": null, "approval_id": null, "risk_score": 100, "risk_factors": ["block", "schema_hallucination", "permission_denied"], "executed": false, "product": "SQLGuard", "datapilot": "BLOCK"}
+datapilot=BLOCK action=BLOCK
+--- BLOCK path: skip Doris execute ---
+
+======== PATH: cross_db_same_name ========
+Prompt: (probe) 跨库同名 hive.ads_dau_di — AST 是否保留 schema
+metric_id: ads_dau_di
+SQL: SELECT dt, server_id, dau, metric_id FROM hive.ads_dau_di WHERE metric_id = 'ads_dau_di'
+expect_gate: SOFT_DOCUMENT
+gate_mode: http POST /v1/check
+gate_result: {"allowed": true, "rule_id": "ok", "message": "只读 SELECT，绕过写库门禁", "sql": "SELECT dt, server_id, dau, metric_id FROM hive.ads_dau_di WHERE metric_id = 'ads_dau_di'", "action": "ALLOW", "risk": "low", "reason": "只读 SELECT，绕过写库门禁", "evidence": {"ast_patterns": {"tables": ["ads_dau_di"], "columns": ["dt", "server_id", "dau", "metric_id"], "joins": [], "cartesian_joins": 0, "missing_where": false, "tautology_where": false, "full_table_write": false, "is_ddl": false, "is_dml": false, "dangerous_flags": []}, "permissions": {"tables": ["ads_dau_di"], "operation": "select", "checked": true}, "explain_cost": {"skipped": true, "reason": "explain disabled / no threshold"}, "environment": {"environment": "gamestream_g7", "operation": "select", "policy_rule": "allow"}}, "operation": "select", "table": "ads_dau_di", "estimated_rows": null, "approval_id": null, "risk_score": 0, "risk_factors": [], "executed": false, "product": "SQLGuard", "datapilot": "EXECUTE"}
+datapilot=EXECUTE action=ALLOW
+SOFT_DOCUMENT: recorded datapilot=EXECUTE action=ALLOW (schema strip probe; not a hard fail)
+--- SOFT probe: skip Doris execute (document gate only) ---
+
 ======== PATH: block_delete ========
 Prompt: (negative) 清空 DAU 表
 metric_id: ads_dau_di
@@ -171,5 +202,5 @@ gate_result: {"allowed": false, "rule_id": "delete_without_where", "message": "D
 datapilot=BLOCK action=BLOCK
 --- BLOCK path: skip Doris execute ---
 
-=== DONE 2026-09-07 10:39:43 CST ===
-result_file=docs/g7-closed-loop-result.txt
+=== DONE 2026-09-07 11:15:02 CST ===
+result_file=/mnt/c/Users/tangy/source/repos/GameStream/docs/g7-closed-loop-result.txt

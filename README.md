@@ -32,7 +32,7 @@ flowchart LR
 | OLAP | Parquet + DuckDB | **Doris** FE/BE（HTTP `:8030` / MySQL `:9030`） |
 | 端到端 | lite ADS 在 DuckDB | **G2 已验证**：Simulator→Kafka→Flink→Doris ADS（见 [`docs/e2e-g2.md`](docs/e2e-g2.md)） |
 
-**勿夸大：** G1 = 组件可起 + 端口可达。G2 = 小规模 E2E 写入 Doris ADS（`ads_dau_di` / `ads_pay_rate_di`）。G3 = event-time watermark / 乱序·迟到 / `event_id` 去重（见 [`docs/g3-stream-semantics.md`](docs/g3-stream-semantics.md)）。**G4 已做**：checkpoint + 重启恢复 + 充值 `event_id` 幂等（见 [`docs/g4-checkpoint-idempotency.md`](docs/g4-checkpoint-idempotency.md)）。**G5 已做**：真杀 Flink TaskManager（`docker kill gs-flink-tm`）+ restart-strategy 从 CP 恢复 + 充值不双计（见 [`docs/g5-fault-drill.md`](docs/g5-fault-drill.md)）。**G6 已做**：Docker 栈实测吞吐/Lag/Checkpoint/E2E P95/反压（见 [`docs/g6-bench.md`](docs/g6-bench.md)，数字只引自 `bench/results/g6_*.json`）。**G7 已做**：NL/Agent→SQLGuard→Doris ADS 闭环（见 [`docs/g7-closed-loop.md`](docs/g7-closed-loop.md)）。**未宣称** 倾斜专项、编造 SLA、K8s/Spark/Iceberg 生产部署。lite 与 prod **同口径**（同一套 `metric_id`）。
+**勿夸大：** G1 = 组件可起 + 端口可达。**G2 = 有界 E2E**（小流量 Simulator→Kafka→Flink→Doris ADS，可复跑 `e2e_g2.sh`）。**G3–G5 = 独立演练**（watermark / checkpoint / kill-TM），**不是**与 G2 绑在一起的「持续 Doris 主流水线」。**G6 已做**：Docker 栈实测吞吐/Lag/Checkpoint/E2E P95/反压（见 [`docs/g6-bench.md`](docs/g6-bench.md)，数字只引自 `bench/results/g6_*.json`）。**G7 已做**：NL/Agent→SQLGuard→Doris ADS 闭环（strict hallucination；见 [`docs/g7-closed-loop.md`](docs/g7-closed-loop.md)）——消费**已有** ADS 行，不负责灌数。**尚未统一**「持续 Doris 主流水线 + 问数」（为 G8 铺路，**本仓未实现 G8**）。**未宣称** 倾斜专项、编造 SLA、K8s/Spark/Iceberg 生产部署。lite 与 prod **同口径**（同一套 `metric_id`）。
 
 ## G2 快速跑（WSL，小流量）
 
@@ -97,7 +97,7 @@ cp scripts/g7_closed_loop.sh /tmp/g7.sh && sed -i 's/\r$//' /tmp/g7.sh
 GAMESTREAM_ROOT=/mnt/c/Users/tangy/source/repos/GameStream MODE=fixture bash /tmp/g7.sh
 ```
 
-细节：[`docs/g7-closed-loop.md`](docs/g7-closed-loop.md)（fixture Prompt→SQL→`/v1/check|/v1/execute`→ADS 行；可选 DataPilot）。**不含** 新 UI / 编造指标。
+细节：[`docs/g7-closed-loop.md`](docs/g7-closed-loop.md)（fixture Prompt→SQL→`/v1/check|/v1/execute`→ADS 行；strict `allow_unknown_*=false`；可选 DataPilot）。合法 ADS SELECT **各返回若干行**（见 result transcript，勿写「EXECUTE×N」）。**不含** 新 UI / 编造指标 / G8。
 
 ## 事件与分层
 

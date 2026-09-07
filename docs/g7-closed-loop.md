@@ -11,6 +11,18 @@ flowchart LR
   SG -->|BLOCK| Stop[不执行]
 ```
 
+## 与 G2–G6 / 主链路的关系（诚实边界）
+
+| 阶段 | 性质 | 说明 |
+|------|------|------|
+| **G2** | 有界 E2E | Simulator→Kafka→Flink→Doris ADS 小流量写入；可复跑 `scripts/e2e_g2.sh` |
+| **G3–G5** | **独立演练** | watermark / checkpoint / kill-TM 等专题脚本，**不是**与 G2 同一条「持续跑着」的 Doris 主流水线 |
+| **G6** | 实测压测 | Docker 栈吞吐/Lag/CP；数字只引自 `bench/results/g6_*.json` |
+| **G7** | AI 问数门禁闭环 | fixture/DataPilot → SQLGuard → **已有** Doris ADS 行；**不**负责灌数 |
+| **G8（未做）** | — | 尚未统一「持续 Doris 主流水线 + 问数」；本文仅铺路，**不实现 G8** |
+
+结论：G7 验收依赖 ADS **已有行**（通常来自某次 G2）；不要把 G3–G5 独立演练说成「一直在喂 ADS 的连续主链路」。
+
 ## 启动顺序
 
 1. **G1 栈 up**（Kafka / Flink / Doris FE:9030）。`docker compose ps` 见 `gs-doris-fe` healthy。
@@ -68,19 +80,21 @@ python -m datapilot "DAU多少"
 | `GAMESTREAM_ROOT` | 脚本推断 | GameStream 根目录 |
 | `GUARD_URL` | `http://127.0.0.1:8787` | SQLGuard serve |
 | `DORIS_URL` | `mysql://root@127.0.0.1:9030/ads` | Doris MySQL 协议 |
-| `POLICY` | `config/sqlguard/g7_policy.yaml` | SELECT-only ADS |
-| `CATALOG` | `config/sqlguard/g7_catalog.json` | 最小 ADS 列目录 |
+| `POLICY` | `config/sqlguard/g7_policy.yaml` | SELECT-only ADS（strict hallucination） |
+| `CATALOG` | `config/sqlguard/g7_catalog.json` | ADS 列目录（裸名 + `ads.` 双键） |
 | `SQLGUARD_REPO` | sibling `sql-write-gate` | PYTHONPATH / pip editable |
 | `DATAPILOT_REPO` | sibling `DataPilot` | 可选真链路 |
 | `MODE` | `auto` | `auto`\|`datapilot`\|`fixture` |
 | `START_GUARD` | `1` | 无 healthz 时自动 `serve` |
 | `RESULT_FILE` | `docs/g7-closed-loop-result.txt` | 运行 transcript |
 
-## Policy / Catalog 要点
+## Policy / Catalog 要点（strict）
 
 - `rules`: select **allow**；insert/update/delete/ddl **block**
-- `permissions.enforce: true`；表名用**裸名**（`ads_dau_di` 等，无 `ads.*` 通配）→ `[select]`
-- 联调：`hallucination.allow_unknown_tables/columns: true`
+- `permissions.enforce: true`；表名以**裸名**为主（`ads_dau_di` 等），并冗余 `ads.ads_*` 双键（以防未来 AST 保留 qualifier）
+- **`hallucination.allow_unknown_tables: false`** / **`allow_unknown_columns: false`**（严格模式）
+- **限定名匹配**：`sql-write-gate`（sqlglot `Table.name`）把 `ads.ads_dau_di` **剥成裸名** `ads_dau_di` 再查 catalog/permissions。因此合法 `FROM ads.ads_*` 在 strict 下仍可 EXECUTE；catalog 裸名列齐全即可
+- **跨库同名局限**：`hive.ads_dau_di` 同样被剥成 `ads_dau_di`，门禁侧会 **ALLOW/EXECUTE**（见下方 SOFT 探针）；**不能**靠当前 SQLGuard 按 schema 拦截。真正隔离依赖 Doris 侧库权限 / 后续 G8+ 增强
 - `metric_id` / 表名与契约一致：`ads_dau_di`、`ads_pay_rate_di`、…
 
 契约未改；DataPilot / SQLGuard 继续消费同一 `metric_id`。
@@ -100,9 +114,10 @@ python -m datapilot "DAU多少"
 
 ## 样本路径（真实 transcript，摘自 `g7-closed-loop-result.txt`）
 
-运行时间：**2026-09-07 10:39:39 CST**；SQLGuard **1.1.0**；ADS 各 **8** 行。
+运行时间：**2026-09-07 11:14:57 CST**；SQLGuard **1.1.0**；strict hallucination；ADS 探活各 **8** 行。  
+表述约定：写「**两个 SELECT 各返回 8 行**」，**不要**写成「EXECUTE×8」。
 
-### Path 1 — DAU（EXECUTE + rows）
+### Path 1 — DAU（EXECUTE，SELECT 返回 8 行）
 
 - **Prompt**: `DAU多少？按日期和服区分组`
 - **SQL**:
@@ -113,7 +128,7 @@ python -m datapilot "DAU多少"
   ORDER BY dt, server_id
   ```
 - **Gate** (`POST /v1/check`): `datapilot=EXECUTE` / `action=ALLOW` / `rule_id=ok`
-- **Execute** (`POST /v1/execute`): `executed=true` / `rowcount=8`
+- **Execute** (`POST /v1/execute`): `executed=true`；该 SELECT **返回 8 行**
 - **Rows**（节选）:
   | dt | server_id | dau | metric_id |
   |----|-----------|-----|-----------|
@@ -126,7 +141,7 @@ python -m datapilot "DAU多少"
   | 2026-09-07 | 3 | 27 | ads_dau_di |
   | 2026-09-07 | 4 | 20 | ads_dau_di |
 
-### Path 2 — 付费率（EXECUTE + rows）
+### Path 2 — 付费率（EXECUTE，SELECT 返回 8 行）
 
 - **Prompt**: `各服付费率是多少？给出 DAU、付费人数和付费率`
 - **SQL**:
@@ -137,7 +152,7 @@ python -m datapilot "DAU多少"
   ORDER BY dt, server_id
   ```
 - **Gate**: `datapilot=EXECUTE` / `action=ALLOW`
-- **Execute**: `executed=true` / `rowcount=8`
+- **Execute**: `executed=true`；该 SELECT **返回 8 行**
 - **Rows**（节选）:
   | dt | server_id | dau | pay_users | pay_rate | metric_id |
   |----|-----------|-----|-----------|----------|-----------|
@@ -150,7 +165,23 @@ python -m datapilot "DAU多少"
   | 2026-09-07 | 3 | 27 | 0 | 0.0 | ads_pay_rate_di |
   | 2026-09-07 | 4 | 20 | 1 | 0.05 | ads_pay_rate_di |
 
-### Path 3 — 故意 BLOCK
+### Path 3 — 未知列 → BLOCK
+
+- **SQL**: `SELECT dt, server_id, not_a_real_col FROM ads.ads_dau_di`
+- **Gate**: `datapilot=BLOCK` / `rule_id=schema_hallucination` / `executed=false`
+
+### Path 4 — 表不在 allowlist → BLOCK
+
+- **SQL**: `SELECT dt FROM ads.ads_not_on_allowlist`
+- **Gate**: `datapilot=BLOCK` / `rule_id=schema_hallucination`（兼 `permission_denied`）
+
+### Path 5 — 跨库同名探针（SOFT / 文档）
+
+- **SQL**: `SELECT … FROM hive.ads_dau_di …`
+- **Gate**: `datapilot=EXECUTE` / `action=ALLOW`（AST tables=`["ads_dau_di"]`，**schema 被剥掉**）
+- **说明**: 不作为硬失败；记录局限，待 G8+ / 上游门禁增强
+
+### Path 6 — DELETE → BLOCK
 
 - **Prompt**: `(negative) 清空 DAU 表`
 - **SQL**: `DELETE FROM ads.ads_dau_di`
@@ -164,8 +195,8 @@ python -m datapilot "DAU多少"
 | 路径 | 作用 |
 |------|------|
 | `scripts/g7_closed_loop.sh` | 闭环编排 |
-| `scripts/g7_agent_fixtures.py` | 确定性 NL→SQL |
-| `config/sqlguard/g7_policy.yaml` | SQLGuard 策略 |
-| `config/sqlguard/g7_catalog.json` | 最小 ADS catalog |
+| `scripts/g7_agent_fixtures.py` | 确定性 NL→SQL（含 negative / SOFT 探针） |
+| `config/sqlguard/g7_policy.yaml` | SQLGuard 严格策略 |
+| `config/sqlguard/g7_catalog.json` | ADS catalog（裸名 + `ads.` 双键） |
 
 **不含** G8+；G2–G6 行为不变。

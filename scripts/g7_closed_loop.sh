@@ -206,6 +206,10 @@ run_fixture_path() {
   if [[ "$expect" == "BLOCK" && ( "$dp" == "BLOCK" || "$action" == "BLOCK" ) ]]; then
     ok=1
   fi
+  if [[ "$expect" == "SOFT_DOCUMENT" ]]; then
+    ok=1
+    log "SOFT_DOCUMENT: recorded datapilot=$dp action=$action (schema strip probe; not a hard fail)"
+  fi
   if [[ "$ok" != "1" ]]; then
     log "ERROR: unexpected gate (want $expect got datapilot=$dp action=$action)"
     exit 1
@@ -237,6 +241,8 @@ run_fixture_path() {
         doris_select "$sql" | tee -a "$RESULT_FILE"
       fi
     fi
+  elif [[ "$expect" == "SOFT_DOCUMENT" ]]; then
+    log "--- SOFT probe: skip Doris execute (document gate only) ---"
   else
     log "--- BLOCK path: skip Doris execute ---"
   fi
@@ -269,6 +275,9 @@ fi
 log "=== fixture closed-loop paths (Agent-shaped NL→SQL→SQLGuard→Doris) ==="
 run_fixture_path dau
 run_fixture_path pay_rate
+run_fixture_path block_unknown_column
+run_fixture_path block_unknown_table
+run_fixture_path cross_db_same_name
 run_fixture_path block_delete
 
 log "=== DONE $(ts_utc8) ==="

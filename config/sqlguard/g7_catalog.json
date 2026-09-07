@@ -113,6 +113,118 @@
       "allowed_write_columns": [],
       "pii_columns": [],
       "restricted_columns": []
+    },
+    "ads.ads_dau_di": {
+      "writable": false,
+      "stale": false,
+      "partition_column": "dt",
+      "columns": {
+        "dt": "DATE",
+        "server_id": "INTEGER",
+        "dau": "BIGINT",
+        "metric_id": "VARCHAR"
+      },
+      "allowed_write_columns": [],
+      "pii_columns": [],
+      "restricted_columns": []
+    },
+    "ads.ads_pay_rate_di": {
+      "writable": false,
+      "stale": false,
+      "partition_column": "dt",
+      "columns": {
+        "dt": "DATE",
+        "server_id": "INTEGER",
+        "dau": "BIGINT",
+        "pay_users": "BIGINT",
+        "pay_rate": "DOUBLE",
+        "metric_id": "VARCHAR"
+      },
+      "allowed_write_columns": [],
+      "pii_columns": [],
+      "restricted_columns": []
+    },
+    "ads.ads_retention_nd": {
+      "writable": false,
+      "stale": false,
+      "partition_column": "cohort_dt",
+      "columns": {
+        "cohort_dt": "DATE",
+        "server_id": "INTEGER",
+        "n_days": "INTEGER",
+        "cohort_size": "BIGINT",
+        "retained_cnt": "BIGINT",
+        "retention_rate": "DOUBLE",
+        "metric_id": "VARCHAR"
+      },
+      "allowed_write_columns": [],
+      "pii_columns": [],
+      "restricted_columns": []
+    },
+    "ads.ads_arpu_di": {
+      "writable": false,
+      "stale": false,
+      "partition_column": "dt",
+      "columns": {
+        "dt": "DATE",
+        "server_id": "INTEGER",
+        "dau": "BIGINT",
+        "revenue_cny": "DOUBLE",
+        "arpu_cny": "DOUBLE",
+        "metric_id": "VARCHAR"
+      },
+      "allowed_write_columns": [],
+      "pii_columns": [],
+      "restricted_columns": []
+    },
+    "ads.ads_online_duration_di": {
+      "writable": false,
+      "stale": false,
+      "partition_column": "dt",
+      "columns": {
+        "dt": "DATE",
+        "server_id": "INTEGER",
+        "total_online_sec": "BIGINT",
+        "players": "BIGINT",
+        "avg_online_sec": "DOUBLE",
+        "metric_id": "VARCHAR"
+      },
+      "allowed_write_columns": [],
+      "pii_columns": [],
+      "restricted_columns": []
+    },
+    "ads.ads_dungeon_clear_rate_di": {
+      "writable": false,
+      "stale": false,
+      "partition_column": "dt",
+      "columns": {
+        "dt": "DATE",
+        "server_id": "INTEGER",
+        "dungeon_id": "INTEGER",
+        "enter_cnt": "BIGINT",
+        "clear_cnt": "BIGINT",
+        "clear_rate": "DOUBLE",
+        "metric_id": "VARCHAR"
+      },
+      "allowed_write_columns": [],
+      "pii_columns": [],
+      "restricted_columns": []
+    },
+    "ads.ads_churn_di": {
+      "writable": false,
+      "stale": false,
+      "partition_column": "dt",
+      "columns": {
+        "dt": "DATE",
+        "server_id": "INTEGER",
+        "active_7d_users": "BIGINT",
+        "churn_risk_users": "BIGINT",
+        "churn_risk_rate": "DOUBLE",
+        "metric_id": "VARCHAR"
+      },
+      "allowed_write_columns": [],
+      "pii_columns": [],
+      "restricted_columns": []
     }
   }
 }

@@ -4,6 +4,8 @@
 Maps natural-language prompts to contract-aligned SELECT SQL (metric_id / ads.*).
 Used when DataPilot LLM / ChatBI is unavailable; still goes through SQLGuard → Doris ADS.
 See docs/datapilot_contract.md + config/metrics.yaml.
+
+Negative paths exercise strict hallucination (allow_unknown_*=false) + DELETE block.
 """
 from __future__ import annotations
 
@@ -37,6 +39,40 @@ FIXTURES: list[dict[str, Any]] = [
             "ORDER BY dt, server_id"
         ),
         "expect_gate": "EXECUTE",
+    },
+    {
+        "path_id": "block_unknown_column",
+        "prompt": "(negative) 查询不存在的列 not_a_real_col",
+        "metric_id": "ads_dau_di",
+        "table": "ads.ads_dau_di",
+        "sql": (
+            "SELECT dt, server_id, not_a_real_col "
+            "FROM ads.ads_dau_di"
+        ),
+        "expect_gate": "BLOCK",
+    },
+    {
+        "path_id": "block_unknown_table",
+        "prompt": "(negative) 查询未在 allowlist 的表",
+        "metric_id": None,
+        "table": "ads.ads_not_on_allowlist",
+        "sql": "SELECT dt FROM ads.ads_not_on_allowlist",
+        "expect_gate": "BLOCK",
+    },
+    {
+        "path_id": "cross_db_same_name",
+        "prompt": "(probe) 跨库同名 hive.ads_dau_di — AST 是否保留 schema",
+        "metric_id": "ads_dau_di",
+        "table": "hive.ads_dau_di",
+        "sql": (
+            "SELECT dt, server_id, dau, metric_id "
+            "FROM hive.ads_dau_di "
+            "WHERE metric_id = 'ads_dau_di'"
+        ),
+        # sql-write-gate strips schema → bare ads_dau_di may ALLOW/EXECUTE.
+        # Soft expect: record actual datapilot; closed-loop treats SOFT_* specially.
+        "expect_gate": "SOFT_DOCUMENT",
+        "note": "SQLGuard/sqlglot Table.name strips schema; hive.ads_dau_di → ads_dau_di",
     },
     {
         "path_id": "block_delete",
