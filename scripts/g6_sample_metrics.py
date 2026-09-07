@@ -166,6 +166,14 @@ def sample_throughput_and_bp(jid: str) -> dict[str, Any]:
             out["numRecordsInPerSecond_samples"] = vert["numRecordsInPerSecond_samples"]
             out["numRecordsInPerSecond_max"] = vert.get("numRecordsInPerSecond_max")
             out["numRecordsInPerSecond_sum"] = vert.get("numRecordsInPerSecond_sum")
+            out["numRecordsInPerSecond_sum_across_operators"] = vert.get(
+                "numRecordsInPerSecond_sum_across_operators", vert.get("numRecordsInPerSecond_sum")
+            )
+            out["numRecordsInPerSecond_source_samples"] = vert.get("numRecordsInPerSecond_source_samples")
+            out["numRecordsInPerSecond_source_max"] = vert.get("numRecordsInPerSecond_source_max")
+            out["sampling_scope"] = vert.get("sampling_scope")
+            out["source_vertex_names"] = vert.get("source_vertex_names")
+            out["note"] = vert.get("note")
             out["status"] = "ok"
             out["reason"] = None
             out["source"] = vert.get("source")
@@ -180,8 +188,22 @@ def sample_throughput_and_bp(jid: str) -> dict[str, Any]:
 
 
 
+def _is_source_vertex(name: str | None) -> bool:
+    """Heuristic: Flink SQL/DataStream source operators."""
+    n = (name or "").lower()
+    return (
+        "source:" in n
+        or n.startswith("source")
+        or "kafka" in n and "source" in n
+        or "tableSource" in (name or "")
+        or "streamscansource" in n
+        or "sourcesoperator" in n.replace(" ", "")
+    )
+
+
 def sample_vertex_metrics(jid: str) -> dict[str, Any]:
-    """Job-level /metrics often empty for SQL jobs; sample each vertex metrics list."""
+    """Sample vertex metrics. Prefer Source vertex numRecordsInPerSecond as throughput;
+    also record sum-across-operators (NOT source throughput — do not misuse)."""
     job = _get_json(f"{FLINK}/jobs/{jid}")
     if not job or job.get("_error"):
         return {"status": "未测到", "reason": f"job detail failed: {job}"}
@@ -195,12 +217,16 @@ def sample_vertex_metrics(jid: str) -> dict[str, Any]:
         "idleTimeMsPerSecond",
     ]
     all_values = {}
-    in_rates = []
+    in_rates_all: list[float] = []
+    in_rates_source: list[float] = []
+    source_names: list[str] = []
     bp_vals = []
     for v in job.get("vertices") or []:
         vid = v.get("id")
+        vname = v.get("name") or ""
         if not vid:
             continue
+        is_src = _is_source_vertex(vname)
         listed = _get_json(f"{FLINK}/jobs/{jid}/vertices/{vid}/metrics")
         ids = []
         if isinstance(listed, list):
@@ -225,15 +251,31 @@ def sample_vertex_metrics(jid: str) -> dict[str, Any]:
                 except Exception:
                     continue
                 if mid and (mid.endswith("numRecordsInPerSecond") or mid == "numRecordsInPerSecond"):
-                    in_rates.append(fv)
+                    in_rates_all.append(fv)
+                    if is_src:
+                        in_rates_source.append(fv)
+                        if vname not in source_names:
+                            source_names.append(vname)
                 if mid and "backPressuredTimeMsPerSecond" in str(mid):
                     bp_vals.append(fv)
+    # Prefer source-vertex samples for the primary "samples/max" used by poll aggregates.
+    prefer_source = bool(in_rates_source)
+    primary = in_rates_source if prefer_source else in_rates_all
     return {
         "status": "ok" if all_values else "未测到",
         "values": all_values,
-        "numRecordsInPerSecond_samples": in_rates,
-        "numRecordsInPerSecond_max": max(in_rates) if in_rates else None,
-        "numRecordsInPerSecond_sum": round(sum(in_rates), 3) if in_rates else None,
+        "numRecordsInPerSecond_samples": primary,
+        "numRecordsInPerSecond_max": max(primary) if primary else None,
+        "numRecordsInPerSecond_sum": round(sum(in_rates_all), 3) if in_rates_all else None,
+        "numRecordsInPerSecond_sum_across_operators": round(sum(in_rates_all), 3) if in_rates_all else None,
+        "numRecordsInPerSecond_source_samples": in_rates_source,
+        "numRecordsInPerSecond_source_max": max(in_rates_source) if in_rates_source else None,
+        "sampling_scope": "source_vertex" if prefer_source else "all_operators_fallback",
+        "source_vertex_names": source_names,
+        "note": (
+            "Primary samples prefer Source vertex. "
+            "numRecordsInPerSecond_sum(_across_operators) is SUM across operators — NOT source throughput."
+        ),
         "backPressuredTimeMsPerSecond_samples": bp_vals,
         "backPressuredTimeMsPerSecond_max": max(bp_vals) if bp_vals else None,
         "backpressure_observed": (max(bp_vals) > 0) if bp_vals else None,
@@ -362,15 +404,34 @@ def poll_loop(jid: str, seconds: int, interval: float, out_path: Path) -> dict[s
         "samples": samples,
     }
     out_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
-    # aggregate
+    # aggregate — prefer source-vertex rate; sum-across-operators is NOT source throughput
     in_rates = []
+    sum_rates = []
     bp_maxes = []
+    scopes = []
     for s in samples:
         thr = s.get("throughput_bp") or {}
-        if thr.get("numRecordsInPerSecond_sum") is not None:
-            in_rates.append(thr["numRecordsInPerSecond_sum"])
+        vf = thr.get("vertex_fallback") or {}
+        scope = thr.get("sampling_scope") or vf.get("sampling_scope")
+        if scope:
+            scopes.append(scope)
+        # Prefer explicit source samples / max
+        src_max = thr.get("numRecordsInPerSecond_source_max")
+        if src_max is None:
+            src_max = vf.get("numRecordsInPerSecond_source_max")
+        if src_max is not None:
+            in_rates.append(src_max)
+        elif thr.get("sampling_scope") == "source_vertex" and thr.get("numRecordsInPerSecond_max") is not None:
+            in_rates.append(thr["numRecordsInPerSecond_max"])
         elif thr.get("numRecordsInPerSecond_max") is not None:
             in_rates.append(thr["numRecordsInPerSecond_max"])
+        ssum = thr.get("numRecordsInPerSecond_sum_across_operators")
+        if ssum is None:
+            ssum = thr.get("numRecordsInPerSecond_sum")
+        if ssum is None:
+            ssum = vf.get("numRecordsInPerSecond_sum_across_operators") or vf.get("numRecordsInPerSecond_sum")
+        if ssum is not None:
+            sum_rates.append(ssum)
         if thr.get("backPressuredTimeMsPerSecond_max") is not None:
             bp_maxes.append(thr["backPressuredTimeMsPerSecond_max"])
     last_cp = samples[-1]["checkpoints"] if samples else {}
@@ -382,6 +443,16 @@ def poll_loop(jid: str, seconds: int, interval: float, out_path: Path) -> dict[s
             "max": max(in_rates) if in_rates else None,
             "avg": round(sum(in_rates) / len(in_rates), 3) if in_rates else None,
             "samples": in_rates,
+            "sampling_scope": (
+                "source_vertex" if scopes and all(s == "source_vertex" for s in scopes)
+                else ("mixed" if scopes else "legacy_or_unknown")
+            ),
+            "sum_across_operators_samples": sum_rates,
+            "sum_across_operators_max": max(sum_rates) if sum_rates else None,
+            "definition": (
+                "Primary = prefer Source vertex numRecordsInPerSecond. "
+                "sum_across_operators = SUM across operators — NOT source throughput; do not misuse."
+            ),
             "reason": None if in_rates else "metric unavailable or always zero",
         },
         "backpressure": {

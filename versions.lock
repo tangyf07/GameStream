@@ -1,5 +1,6 @@
 # GameStream 三仓固化验收 pin（NO G8）
-# suite_acceptance.sh 只读取 [pins] 段的 SHA。
+# suite_acceptance.sh 只读取 [pins] 段的 SHA（verification baselines）。
+# 结果文件另记各仓实际 full HEAD / dirty；与 pin 可不相同。
 # 文档：docs/suite-acceptance.md
 
 [pins]
@@ -18,10 +19,10 @@ SQLGuard_test_optional = pytest -q tests/test_v110.py
 SQLGuard_routes = /v1/check|/v1/block|/v1/execute
 SQLGuard_ci = gh run list -R tangyf07/sql-write-gate --branch main --limit 3
 
-DataPilot = e3e603d
+DataPilot = 2541623
 DataPilot_repo = https://github.com/tangyf07/DataPilot
 DataPilot_baseline_p0 = 285202c
-DataPilot_note = suite_p0 (pytest -m suite_p0); behavioral baseline includes 285202c P0
+DataPilot_note = suite_p0 @2541623 (37 passed; supersets e3e603d); behavioral baseline includes 285202c P0
 
 [paths.wsl]
 path_GameStream = /mnt/c/Users/tangy/source/repos/GameStream

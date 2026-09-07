@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
-# GameStream 三仓固化验收（NO G8）
+# GameStream 三仓固化验收（suite pins；G8 不在本脚本范围内）
 # Prefer CRLF-safe:
 #   cp scripts/suite_acceptance.sh /tmp/suite_acc.sh && sed -i 's/\r$//' /tmp/suite_acc.sh
 #   GAMESTREAM_ROOT=/mnt/c/Users/tangy/source/repos/GameStream bash /tmp/suite_acc.sh
+#
+# MODE=strict (default): required FAIL / pin MISMATCH → exit≠0;
+#   required SKIP → INCOMPLETE / exit≠0. Evaluate FAIL before SKIP.
+# MODE=report-only: always write report; exit 0 even if FAIL/SKIP/MISMATCH.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -18,15 +22,18 @@ GUARD_URL="${GUARD_URL:-http://127.0.0.1:8787}"
 DORIS_URL="${DORIS_URL:-mysql://root@127.0.0.1:9030/ads}"
 POLICY="${POLICY:-$ROOT/config/sqlguard/g7_policy.yaml}"
 CATALOG="${CATALOG:-$ROOT/config/sqlguard/g7_catalog.json}"
+# strict | report-only  (SUITE_MODE alias accepted)
+MODE="${MODE:-${SUITE_MODE:-strict}}"
 
 # Default sibling paths (WSL)
 SQLGUARD_REPO="${SQLGUARD_REPO:-/mnt/c/Users/tangy/source/repos/sql-write-gate}"
 DATAPILOT_REPO="${DATAPILOT_REPO:-/mnt/c/Users/tangy/source/repos/DataPilot}"
 
-# Pin defaults (overridden by versions.lock when present)
+# Pin defaults = verification baselines (overridden by versions.lock [pins])
+# Results separately record actual full HEAD / dirty — may differ from pin.
 PIN_GS="${PIN_GS:-2253b25}"
 PIN_SG="${PIN_SG:-7dc85dd}"
-PIN_DP="${PIN_DP:-e3e603d}"
+PIN_DP="${PIN_DP:-2541623}"
 PIN_SG_VER="${PIN_SG_VER:-1.1.2}"
 
 mkdir -p "$(dirname "$RESULT_FILE")"
@@ -38,15 +45,30 @@ if [[ -x /home/tangy/g7-venv/bin/python3 ]]; then
 fi
 
 ts_utc8() { TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M:%S CST'; }
+# log to result + stdout (safe outside command substitution)
 log() { echo "$@" | tee -a "$RESULT_FILE"; }
+# log only to result file (safe inside $(...))
+logf() { echo "$@" >>"$RESULT_FILE"; }
 
 # status helpers — never invent PASS
 declare -A CHECK_STATUS=()
 declare -A CHECK_DETAIL=()
 declare -A CHECK_BACKEND=()
+declare -A CHECK_REQUIRED=()
+
+# required checks (optional ones may SKIP without INCOMPLETE)
+CHECK_REQUIRED[g7_closed_loop]=1
+CHECK_REQUIRED[sqlguard_cross_db_hive]=1
+CHECK_REQUIRED[datapilot_offline_p0]=1
+CHECK_REQUIRED[sqlguard_unit]=1
+# datapilot_doris_g7 is optional
 
 set_status() {
   local id="$1" st="$2" detail="${3:-}" backend="${4:-n/a}"
+  # Never classify failed+skipped as SKIP — FAIL wins if caller passes both signals
+  if [[ "$st" == "SKIP" ]] && [[ "${detail}" == *FAIL* || "${detail}" == *failed* || "${detail}" == *exit=[1-9]* ]]; then
+    st="FAIL"
+  fi
   CHECK_STATUS["$id"]="$st"
   CHECK_DETAIL["$id"]="$detail"
   CHECK_BACKEND["$id"]="$backend"
@@ -75,7 +97,7 @@ read_pins_from_lock() {
       SQLGuard_version) PIN_SG_VER="$v" ;;
     esac
   done < "$LOCK"
-  log "[pin] from $LOCK: GameStream=$PIN_GS SQLGuard=$PIN_SG@$PIN_SG_VER DataPilot=$PIN_DP (suite_p0; baseline_p0=285202c)"
+  log "[pin] verification baselines from $LOCK: GameStream=$PIN_GS SQLGuard=$PIN_SG@$PIN_SG_VER DataPilot=$PIN_DP (suite_p0; baseline_p0=285202c)"
 }
 
 short_sha() {
@@ -83,39 +105,65 @@ short_sha() {
   echo "${full:0:7}"
 }
 
+repo_dirty_summary() {
+  local path="$1"
+  if [[ ! -d "$path/.git" ]]; then
+    echo "n/a"
+    return 0
+  fi
+  local dirty="clean"
+  if ! git -C "$path" diff --quiet 2>/dev/null || ! git -C "$path" diff --cached --quiet 2>/dev/null; then
+    dirty="dirty"
+  fi
+  local untracked
+  untracked=$(git -C "$path" ls-files --others --exclude-standard 2>/dev/null | wc -l | tr -d ' ')
+  local shortstat
+  shortstat=$(git -C "$path" diff --shortstat HEAD 2>/dev/null | tr -d '\n' || true)
+  if [[ "$untracked" != "0" ]]; then
+    dirty="${dirty}+untracked=${untracked}"
+  fi
+  if [[ -n "$shortstat" ]]; then
+    echo "${dirty};${shortstat}"
+  else
+    echo "$dirty"
+  fi
+}
+
+# Echo ONLY token to stdout (OK:/MISMATCH:/MISSING:); details via logf
+# GameStream: pin is baseline — OK if HEAD == pin OR pin is ancestor of HEAD ("or later").
+# SQLGuard/DataPilot: exact short-SHA match required.
 verify_repo_pin() {
   local name="$1" path="$2" expect="$3"
   if [[ ! -d "$path/.git" ]]; then
-    log "[pin] $name clone missing at $path → SKIP pin check"
-    echo "MISSING"
+    logf "[pin] $name clone missing at $path → MISSING"
+    echo "MISSING:n/a"
     return 0
   fi
-  local head
-  head=$(git -C "$path" rev-parse HEAD 2>/dev/null || echo unknown)
-  local short
-  short=$(short_sha "$head")
-  local expect_short
+  local head_full head_short expect_short dirty
+  head_full=$(git -C "$path" rev-parse HEAD 2>/dev/null || echo unknown)
+  head_short=$(short_sha "$head_full")
   expect_short=$(short_sha "$expect")
-  if [[ "$short" == "$expect_short" ]] || [[ "$head" == "$expect"* ]] || git -C "$path" merge-base --is-ancestor "$expect_short" HEAD 2>/dev/null; then
-    # allow "expect or later" for GameStream only when explicitly noted
-    if [[ "$name" == "GameStream" ]]; then
-      log "[pin] $name HEAD=$short (expect $expect_short or later) OK"
-      echo "OK:$short"
+  dirty=$(repo_dirty_summary "$path")
+  logf "[pin] $name actual_HEAD_full=$head_full short=$head_short dirty=$dirty pin_baseline=$expect"
+  if [[ "$name" == "GameStream" ]]; then
+    if [[ "$head_short" == "$expect_short" ]] || [[ "$head_full" == "$expect"* ]] \
+      || git -C "$path" merge-base --is-ancestor "$expect" HEAD 2>/dev/null \
+      || git -C "$path" merge-base --is-ancestor "$expect_short" HEAD 2>/dev/null; then
+      logf "[pin] $name OK (pin $expect_short or later); HEAD=$head_full"
+      echo "OK:${head_full}:${dirty}"
       return 0
     fi
-    if [[ "$short" == "$expect_short" ]]; then
-      log "[pin] $name HEAD=$short == $expect_short OK"
-      echo "OK:$short"
-      return 0
-    fi
-  fi
-  if [[ "$short" == "$expect_short" ]]; then
-    log "[pin] $name HEAD=$short OK"
-    echo "OK:$short"
+    logf "[pin] $name MISMATCH HEAD=$head_full expect_baseline=$expect"
+    echo "MISMATCH:${head_full}:${dirty}"
     return 0
   fi
-  log "[pin] $name HEAD=$short expect=$expect_short MISMATCH"
-  echo "MISMATCH:$short"
+  if [[ "$head_short" == "$expect_short" ]] || [[ "$head_full" == "$expect"* ]]; then
+    logf "[pin] $name OK HEAD=$head_full == pin $expect_short"
+    echo "OK:${head_full}:${dirty}"
+    return 0
+  fi
+  logf "[pin] $name MISMATCH HEAD=$head_full expect=$expect"
+  echo "MISMATCH:${head_full}:${dirty}"
   return 0
 }
 
@@ -126,8 +174,9 @@ json_field() {
 }
 
 # ---------- 0) pins ----------
-log "=== GameStream 三仓固化验收（NO G8）==="
+log "=== GameStream 三仓固化验收 ==="
 log "time=$(ts_utc8)"
+log "mode=$MODE (strict|report-only)"
 log "root=$ROOT"
 log "result_file=$RESULT_FILE"
 log "doris=$DORIS_URL"
@@ -136,10 +185,11 @@ log ""
 
 read_pins_from_lock
 log ""
-log "=== 0) Pin verification ==="
+log "=== 0) Pin verification (baselines vs actual full HEAD) ==="
 GS_PIN_R=$(verify_repo_pin GameStream "$ROOT" "$PIN_GS")
 SG_PIN_R=$(verify_repo_pin SQLGuard "$SQLGUARD_REPO" "$PIN_SG")
 DP_PIN_R=$(verify_repo_pin DataPilot "$DATAPILOT_REPO" "$PIN_DP")
+# re-echo pin detail lines already in result via logf; also mirror tokens
 log "pin_GameStream=$GS_PIN_R"
 log "pin_SQLGuard=$SG_PIN_R"
 log "pin_DataPilot=$DP_PIN_R"
@@ -331,10 +381,13 @@ else
   set -e
   cat "$DORIS_LOG" | tee -a "$RESULT_FILE"
   DORIS_SUM=$(tail -n 5 "$DORIS_LOG" | tr '\n' ' ')
-  if grep -qiE 'skipped|SKIP' "$DORIS_LOG"; then
-    set_status datapilot_doris_g7 SKIP "optional; $DORIS_SUM" "n/a-or-skip"
+  # FAIL before SKIP: non-zero exit with failures is FAIL even if some tests skipped
+  if [[ $DORIS_RC -ne 0 ]] && grep -qiE 'failed|ERROR|FAILURES' "$DORIS_LOG"; then
+    set_status datapilot_doris_g7 FAIL "exit=$DORIS_RC :: $DORIS_SUM" "doris-attempted"
   elif [[ $DORIS_RC -eq 0 ]]; then
     set_status datapilot_doris_g7 PASS "$DORIS_SUM" "doris"
+  elif grep -qiE 'skipped|SKIP' "$DORIS_LOG"; then
+    set_status datapilot_doris_g7 SKIP "optional; $DORIS_SUM" "n/a-or-skip"
   else
     set_status datapilot_doris_g7 FAIL "exit=$DORIS_RC :: $DORIS_SUM" "doris-attempted"
   fi
@@ -427,16 +480,67 @@ else
 fi
 log ""
 
-# ---------- summary table ----------
-log "=== SUMMARY (real statuses only; NO G8) ==="
-log "pins: GameStream=$PIN_GS SQLGuard=$PIN_SG@$PIN_SG_VER DataPilot=$PIN_DP"
-log "pin_results: GS=$GS_PIN_R SG=$SG_PIN_R DP=$DP_PIN_R"
+# ---------- summary table + strict gate ----------
+log "=== SUMMARY (real statuses only) ==="
+log "mode=$MODE"
+log "pin_baselines: GameStream=$PIN_GS SQLGuard=$PIN_SG@$PIN_SG_VER DataPilot=$PIN_DP"
+log "pin_results(actual): GS=$GS_PIN_R SG=$SG_PIN_R DP=$DP_PIN_R"
 for id in g7_closed_loop sqlguard_cross_db_hive datapilot_offline_p0 datapilot_doris_g7 sqlguard_unit; do
   st="${CHECK_STATUS[$id]:-SKIP}"
   be="${CHECK_BACKEND[$id]:-n/a}"
   de="${CHECK_DETAIL[$id]:-not-run}"
-  log "  $id | $st | backend=$be | $de"
+  req="${CHECK_REQUIRED[$id]:-0}"
+  log "  $id | $st | required=$req | backend=$be | $de"
 done
+
+# Gate: evaluate FAIL before SKIP (never treat failed+skipped as SKIP-only).
+GATE_FAIL=0
+GATE_SKIP=0
+GATE_MISMATCH=0
+GATE_NOTES=()
+
+for token_name in GS_PIN_R SG_PIN_R DP_PIN_R; do
+  tok="${!token_name}"
+  case "$tok" in
+    MISMATCH:*) GATE_MISMATCH=1; GATE_NOTES+=("pin_$token_name=$tok") ;;
+    MISSING:*)  GATE_SKIP=1; GATE_NOTES+=("pin_$token_name=$tok") ;;
+  esac
+done
+
+for id in g7_closed_loop sqlguard_cross_db_hive datapilot_offline_p0 datapilot_doris_g7 sqlguard_unit; do
+  st="${CHECK_STATUS[$id]:-SKIP}"
+  req="${CHECK_REQUIRED[$id]:-0}"
+  [[ "$req" == "1" ]] || continue
+  case "$st" in
+    FAIL) GATE_FAIL=1; GATE_NOTES+=("$id=FAIL") ;;
+    SKIP|INCOMPLETE) GATE_SKIP=1; GATE_NOTES+=("$id=$st") ;;
+  esac
+done
+
+OVERALL="PASS"
+EXIT_RC=0
+if [[ $GATE_FAIL -eq 1 || $GATE_MISMATCH -eq 1 ]]; then
+  OVERALL="FAIL"
+  EXIT_RC=1
+elif [[ $GATE_SKIP -eq 1 ]]; then
+  OVERALL="INCOMPLETE"
+  EXIT_RC=2
+fi
+
+GATE_NOTES_JOINED="${GATE_NOTES[*]}"
+log "gate: overall=$OVERALL exit_rc=$EXIT_RC fail=$GATE_FAIL mismatch=$GATE_MISMATCH skip=$GATE_SKIP notes=${GATE_NOTES_JOINED:-none}"
 log "DONE $(ts_utc8)"
 log "result_file=$RESULT_FILE"
-echo "OK: wrote $RESULT_FILE"
+
+if [[ "$MODE" == "report-only" || "$MODE" == "report_only" || "$MODE" == "REPORT_ONLY" ]]; then
+  log "mode=report-only → forcing exit 0 (report written; overall was $OVERALL)"
+  echo "OK: wrote $RESULT_FILE (report-only; overall=$OVERALL)"
+  exit 0
+fi
+
+if [[ $EXIT_RC -eq 0 ]]; then
+  echo "OK: wrote $RESULT_FILE (overall=$OVERALL)"
+  exit 0
+fi
+echo "FAIL: wrote $RESULT_FILE (overall=$OVERALL exit=$EXIT_RC)" >&2
+exit "$EXIT_RC"

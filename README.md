@@ -32,11 +32,11 @@ flowchart LR
 | OLAP | Parquet + DuckDB | **Doris** FE/BE（HTTP `:8030` / MySQL `:9030`） |
 | 端到端 | lite ADS 在 DuckDB | **G2 已验证**：Simulator→Kafka→Flink→Doris ADS（见 [`docs/e2e-g2.md`](docs/e2e-g2.md)） |
 
-**勿夸大：** G1 = 组件可起 + 端口可达。**G2 = 有界 E2E**（batch + bounded Kafka → 一次性 Doris ADS，可复跑 `e2e_g2.sh`，作对照保留）。**G3–G5 = 独立演练**（watermark / checkpoint / kill-TM）；**G8 已把它们折进同一条持续 Doris ADS 主流水线**（见 [`docs/g8-continuous-mainline.md`](docs/g8-continuous-mainline.md)）。**G6 已做**：Docker 栈实测吞吐/Lag/Checkpoint/E2E P95/反压（见 [`docs/g6-bench.md`](docs/g6-bench.md)，数字只引自 `bench/results/g6_*.json`；G8 稳态 bench 见 [`docs/g8-steady-bench.md`](docs/g8-steady-bench.md)，不编造）。**G7 已做**：NL/Agent→SQLGuard→Doris ADS 闭环（strict hallucination；见 [`docs/g7-closed-loop.md`](docs/g7-closed-loop.md)）——消费**已有** ADS 行，不负责灌数。**未宣称** 倾斜专项、编造 SLA、K8s/Spark/Iceberg 生产部署、端到端 EO-2PC。lite 与 prod **同口径**（同一套 `metric_id`）。
+**勿夸大：** G1 = 组件可起 + 端口可达。**G2 = 有界 E2E**（batch + bounded Kafka → 一次性 Doris ADS，可复跑 `e2e_g2.sh`，作对照保留）。**G3–G5 = 独立演练**（watermark / checkpoint / kill-TM）；**G8 已把它们折进同一条持续 Doris ADS 主流水线**（见 [`docs/g8-continuous-mainline.md`](docs/g8-continuous-mainline.md)）。**G6 已做**：Docker 栈实测吞吐/Lag/Checkpoint/E2E P95/反压（见 [`docs/g6-bench.md`](docs/g6-bench.md)，数字只引自 `bench/results/g6_*.json`；G8 小规模分块负载见 [`docs/g8-steady-bench.md`](docs/g8-steady-bench.md)，不编造）。**G7 已做**：NL/Agent→SQLGuard→Doris ADS 闭环（strict hallucination；见 [`docs/g7-closed-loop.md`](docs/g7-closed-loop.md)）——消费**已有** ADS 行，不负责灌数。**未宣称** 倾斜专项、编造 SLA、K8s/Spark/Iceberg 生产部署、端到端 EO-2PC。lite 与 prod **同口径**（同一套 `metric_id`）。
 
 ## 三仓固化验收
 
-**三仓固化验收**：[`docs/suite-acceptance.md`](docs/suite-acceptance.md)（GameStream `2253b25`+ / SQLGuard `7dc85dd`=1.1.2 / DataPilot `e3e603d`；suite 脚本仍标 NO G8 固化边界；**G8 主流水线已另提交**，见下文）。
+**三仓固化验收**：[`docs/suite-acceptance.md`](docs/suite-acceptance.md)（GameStream `2253b25`+ / SQLGuard `7dc85dd`=1.1.2 / DataPilot **`2541623`**；默认 **strict** 门禁；G8 不在 suite required 内，见下文）。
 
 细节与状态语义见文档；跑：`bash scripts/suite_acceptance.sh`（WSL 请先 `sed` 去 CRLF）。报告：[`docs/suite-acceptance-result.txt`](docs/suite-acceptance-result.txt)。
 
@@ -113,9 +113,9 @@ cp scripts/g8_continuous_mainline.sh /tmp/g8.sh && sed -i 's/\r$//' /tmp/g8.sh
 GAMESTREAM_ROOT=/mnt/c/Users/tangy/source/repos/GameStream bash /tmp/g8.sh
 ```
 
-细节：[`docs/g8-continuous-mainline.md`](docs/g8-continuous-mainline.md)（Kafka→清洗/`event_id` 去重→日 DAU+付费率→upsert-kafka 持续流→Doris UNIQUE KEY 物化；同 job kill-TM 恢复不双计）。**对照 G2 有界批**；G3–G5 折入同一 pipeline。Flink JDBC MySQL upsert 方言 Doris 拒收故不用；**不**宣称 EO-2PC。无编造 bench 数字。
+细节：[`docs/g8-continuous-mainline.md`](docs/g8-continuous-mainline.md)（**单一持续 Flink 作业＋脚本阶段物化 Doris**：Kafka→清洗/`event_id` 去重→日 DAU+付费率→upsert-kafka→**脚本** UNIQUE KEY 物化；同 job kill-TM 恢复不双计；`tm_start_fallback=1` / chk-8 精确 restore 未单独证明）。**对照 G2 有界批**；G3–G5 折入同一 pipeline。**无**常驻 Doris materializer；Flink JDBC MySQL upsert 方言 Doris 拒收故不用；**不**宣称 EO-2PC。无编造 bench 数字。
 
-## G8 稳态压测（WSL，continuous load → Doris-visible E2E）
+## G8 小规模分块负载与批次可见性验证（WSL）
 
 ```bash
 cp scripts/g8_steady_bench.sh /tmp/g8s.sh && sed -i 's/\r$//' /tmp/g8s.sh
@@ -124,7 +124,7 @@ GAMESTREAM_ROOT=/mnt/c/Users/tangy/source/repos/GameStream TIER=light bash /tmp/
 # GAMESTREAM_ROOT=/mnt/c/Users/tangy/source/repos/GameStream TIER=medium bash /tmp/g8s.sh
 ```
 
-细节：[`docs/g8-steady-bench.md`](docs/g8-steady-bench.md)。**数字只引用**已提交的 [`bench/results/g8_*.json`](bench/results/)（吞吐 / Lag / CP / **Doris-query-visible E2E** / 反压；无实测写未测到，不编造；**不**把 G6 Kafka-only 数字标成 G8 Doris-visible）。
+细节：[`docs/g8-steady-bench.md`](docs/g8-steady-bench.md)。**数字只引用**已提交的 [`bench/results/g8_*.json`](bench/results/)。表述：两档各 2 次批次探针，当前脚本物化路径下约 **39–41s 可查**（n=2≈max，**勿卖 P95**；含 console-consumer 串行开销）。Flink in/s = **sum across operators，非 source 吞吐**。**不**把 G6 Kafka-only 数字标成 G8 Doris-visible；**无**常驻 Doris materializer。
 
 ## 事件与分层
 
@@ -153,4 +153,4 @@ Windows：`.\scripts\quality_gate.ps1` / `.\scripts\run_all.ps1`。
 
 ## 压测
 
-仅提交实测：`bench/results/g6_*.json` / `bench/results/g8_*.json` / `bench/results/bench_*.json`。无实测时 **不编造** Lag / Checkpoint / P95。G6：[`docs/g6-bench.md`](docs/g6-bench.md)。G8 稳态：[`docs/g8-steady-bench.md`](docs/g8-steady-bench.md)。
+仅提交实测：`bench/results/g6_*.json` / `bench/results/g8_*.json` / `bench/results/bench_*.json`。无实测时 **不编造** Lag / Checkpoint / P95。G6：[`docs/g6-bench.md`](docs/g6-bench.md)。G8 分块负载：[`docs/g8-steady-bench.md`](docs/g8-steady-bench.md)。

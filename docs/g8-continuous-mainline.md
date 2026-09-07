@@ -1,17 +1,17 @@
 # GameStream G8 — Continuous Doris ADS Mainline
 
-**Scope:** 一条**持续运行**的 Flink SQL 主流水线：Kafka → 清洗 / `event_id` 去重 → 日 DAU + 付费率 → **持续写入** Doris ADS（`ads.ads_dau_di` / `ads.ads_pay_rate_di`）。  
-把 G3 watermark/去重、G4 checkpoint、G5 kill-TM 折进**同一条** job（不是离线演练后再 import）。
+**Scope:** **单一持续 Flink 作业＋脚本阶段物化 Doris**：Kafka → 清洗 / `event_id` 去重 → 日 DAU + 付费率 → upsert-kafka；再由**脚本阶段** UNIQUE KEY 物化到 Doris ADS（`ads.ads_dau_di` / `ads.ads_pay_rate_di`）。  
+把 G3 watermark/去重、G4 checkpoint、G5 kill-TM 折进**同一条** Flink job（不是离线演练后再 import）。**不是**常驻 Doris writer 服务——无脚本物化则 ADS 不更新。
 
 **对照：**
 
 | | G2 | G3–G5（旧） | **G8** |
 |--|----|------------|--------|
 | 运行模式 | batch + bounded Kafka | 各自独立 streaming 演练 | **一条** streaming 主流水线 |
-| Doris ADS | 有界一次性灌数 | 多数写 Kafka / 专项表 | **持续** upsert `ads_*` |
+| Doris ADS | 有界一次性灌数 | 多数写 Kafka / 专项表 | Flink 持续 upsert-kafka；**脚本阶段**物化 `ads_*` |
 | 故障 | 无 | G5 单独 kill-TM | **同一 job** kill-TM 后继续更新 ADS |
 
-**不在范围：** 编造压测吞吐/Lag/P95（稳态见 G8 steady bench）；扩展 metric zoo；宣称端到端 EO-2PC。
+**不在范围：** 编造吞吐/Lag/P95（小规模分块负载见 G8 steady bench）；扩展 metric zoo；宣称端到端 EO-2PC；常驻 Doris materializer 服务。
 
 ## 面试叙事（持续 ADS，不是有界批）
 
@@ -32,7 +32,8 @@ Flink SQL job g8-continuous-ads  （streaming，常驻）
   • upsert-kafka → gamestream.g8.ads_dau / ads_pay_rate（ALS + PK）
         │
         ▼
-script：mysql INSERT → Doris UNIQUE KEY（持续物化 ADS）
+script（阶段物化，非常驻服务）：mysql INSERT → Doris UNIQUE KEY
+  ※ 无此脚本阶段则 Doris ADS 不会被本主流水线更新
   ※ Flink JDBC 的 MySQL `ON DUPLICATE KEY UPDATE` 会被 Doris FE 拒绝，故不直连 JDBC upsert
         │
         ▼
@@ -49,7 +50,7 @@ script：mysql INSERT → Doris UNIQUE KEY（持续物化 ADS）
 | `event_id` 去重 | Rank first-wins（与 G4/G5 相同）；dup 不抬 DAU |
 | 乱序 | 同日 OOO 仍进同一 `dt` 桶（fixture 含 `ooo_within_bound`） |
 | 迟到 / 日桶 | **日 ADS = 开窗可订正**（unbounded key-by），不是 G3 分钟窗的关窗丢弃。G3 关窗 drop 仍由 `g3_stream_semantics` 证明 |
-| Sink | Flink = upsert-kafka ALS；Doris = UNIQUE KEY plain INSERT；**不**宣称 EO-2PC / JDBC upsert |
+| Sink | Flink = upsert-kafka ALS；Doris = **脚本阶段** UNIQUE KEY plain INSERT（非常驻 writer）；**不**宣称 EO-2PC / JDBC upsert |
 | State | `table.exec.state.ttl=1d`，parallelism=1，适配 ~7.6Gi |
 
 ## metric_id
@@ -102,9 +103,9 @@ WSL run **2026-09-07**（UTC `04:01:01` ≈ **12:01 Asia/Shanghai**）。job `d9
 | after dup replay | **8** | **2** | 0.25 |
 | after_batch3 | **10** | **2** | 0.2 |
 
-- checkpoint before kill: `chk-8`；after recover completed count **8 → 20**
-- `docker kill gs-flink-tm` rc=0；compose/TM 未及时拉起时脚本 **honest fallback** `docker start`（`tm_start_fallback=1`）
+- checkpoint before kill: path 含 `chk-8`；after recover completed count **8 → 20**（**未单独证明** job 一定从 `chk-8` 精确 restore——只证明恢复后继续完成 CP 且 ADS 语义正确）
+- `docker kill gs-flink-tm` rc=0；compose/TM 未及时拉起时脚本 **honest fallback** `docker start`（结果里 `tm_start_fallback=1`——勿写成「compose 自动拉起已验证」）
 - 最终 Doris：`ads_dau_di (2026-09-07,1)=10`；`ads_pay_rate_di pay_users=2 pay_rate=0.2`
 - 全量粘贴：[`g8-continuous-mainline-result.txt`](g8-continuous-mainline-result.txt)
 
-不编造吞吐/Lag/P95；稳态 bench 已测：[`docs/g8-steady-bench.md`](g8-steady-bench.md)（数字只引 `bench/results/g8_*.json`）。
+不编造吞吐/Lag/P95；小规模分块负载与批次可见性验证见 [`docs/g8-steady-bench.md`](g8-steady-bench.md)（数字只引 `bench/results/g8_*.json`）。

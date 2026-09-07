@@ -19,3 +19,8 @@ doris_e2e: status=ok n_ok=2 p95_ms=40572.177 p50_ms=39948.4 avg_ms=40260.289 sam
 backpressure: status=ok observed=False max_ratio=0.0
 
 Sink honesty: Flink upsert-kafka ALS+PK; Doris UNIQUE KEY materialize; NOT EO-2PC; NOT G6 Kafka-only E2E.
+
+Wording (docs): 小规模分块负载与批次可见性验证 — NOT 「稳态压测」.
+Doris 批次探针: 两档各 n=2，当前脚本物化路径下约 39–41s 可查；n=2≈max 勿卖 P95；含 console-consumer 串行开销.
+Flink in/s above = sum across operators, NOT source throughput (do not misuse).
+NO permanent Doris materializer service — script-stage UNIQUE KEY only.

@@ -1,26 +1,27 @@
-=== GameStream 三仓固化验收（NO G8）===
-time=2026-09-07 11:41:14 CST
+=== GameStream 三仓固化验收 ===
+time=2026-09-07 13:19:38 CST
+mode=report-only (strict|report-only)
 root=/mnt/c/Users/tangy/source/repos/GameStream
 result_file=docs/suite-acceptance-result.txt
 doris=mysql://root@127.0.0.1:9030/ads
 guard_url=http://127.0.0.1:8787
 
-[pin] from /mnt/c/Users/tangy/source/repos/GameStream/versions.lock: GameStream=2253b25 SQLGuard=7dc85dd@1.1.2 DataPilot=e3e603d (suite_p0; baseline_p0=285202c)
+[pin] verification baselines from /mnt/c/Users/tangy/source/repos/GameStream/versions.lock: GameStream=2253b25 SQLGuard=7dc85dd@1.1.2 DataPilot=2541623 (suite_p0; baseline_p0=285202c)
 
-=== 0) Pin verification ===
-[pin] GameStream HEAD=4e54c7b expect=2253b25 MISMATCH
-[pin] SQLGuard HEAD=7dc85dd == 7dc85dd OK
-[pin] DataPilot HEAD=e3e603d == e3e603d OK
-pin_GameStream=[pin] GameStream HEAD=4e54c7b expect=2253b25 MISMATCH
-MISMATCH:4e54c7b
-pin_SQLGuard=[pin] SQLGuard HEAD=7dc85dd == 7dc85dd OK
-OK:7dc85dd
-pin_DataPilot=[pin] DataPilot HEAD=e3e603d == e3e603d OK
-OK:e3e603d
+=== 0) Pin verification (baselines vs actual full HEAD) ===
+[pin] GameStream actual_HEAD_full=5fe098c1ff5288597f4c21754610f4314f36acd6 short=5fe098c dirty=dirty; 10 files changed, 318 insertions(+), 402 deletions(-) pin_baseline=2253b25
+[pin] GameStream OK (pin 2253b25 or later); HEAD=5fe098c1ff5288597f4c21754610f4314f36acd6
+[pin] SQLGuard actual_HEAD_full=7dc85dddf00c0b885b221b4f54359bf559d1fdda short=7dc85dd dirty=dirty+untracked=1; 112 files changed, 0 insertions(+), 0 deletions(-) pin_baseline=7dc85dd
+[pin] SQLGuard OK HEAD=7dc85dddf00c0b885b221b4f54359bf559d1fdda == pin 7dc85dd
+[pin] DataPilot actual_HEAD_full=254162338e1969e182f8d67ed175a3297f049c4c short=2541623 dirty=dirty+untracked=18; 45 files changed, 625 insertions(+), 625 deletions(-) pin_baseline=2541623
+[pin] DataPilot OK HEAD=254162338e1969e182f8d67ed175a3297f049c4c == pin 2541623
+pin_GameStream=OK:5fe098c1ff5288597f4c21754610f4314f36acd6:dirty; 10 files changed, 318 insertions(+), 402 deletions(-)
+pin_SQLGuard=OK:7dc85dddf00c0b885b221b4f54359bf559d1fdda:dirty+untracked=1; 112 files changed, 0 insertions(+), 0 deletions(-)
+pin_DataPilot=OK:254162338e1969e182f8d67ed175a3297f049c4c:dirty+untracked=18; 45 files changed, 625 insertions(+), 625 deletions(-)
 
 === a) G7 strict closed-loop (Doris backend) ===
 === GameStream G7 closed loop ===
-time=2026-09-07 11:41:15 CST
+time=2026-09-07 13:19:42 CST
 root=/mnt/c/Users/tangy/source/repos/GameStream
 doris=mysql://root@127.0.0.1:9030/ads
 policy=/mnt/c/Users/tangy/source/repos/GameStream/config/sqlguard/g7_policy.yaml
@@ -29,11 +30,11 @@ guard_url=http://127.0.0.1:8787
 mode=fixture
 
 === 0) Doris ADS probe ===
-ads_dau_di rows=8
-ads_pay_rate_di rows=8
+ads_dau_di rows=9
+ads_pay_rate_di rows=9
 
 [guard] starting serve on 127.0.0.1:8787 ...
-[guard] up pid=171235
+[guard] up pid=427849
 {"ok": true, "product": "SQLGuard", "version": "1.1.2", "package": "sql-write-gate"}
 === fixture closed-loop paths (Agent-shaped NL→SQL→SQLGuard→Doris) ===
 ======== PATH: dau ========
@@ -45,10 +46,10 @@ gate_mode: http POST /v1/check
 gate_result: {"allowed": true, "rule_id": "ok", "message": "只读 SELECT，绕过写库门禁", "sql": "SELECT dt, server_id, dau, metric_id FROM ads.ads_dau_di WHERE metric_id = 'ads_dau_di' ORDER BY dt, server_id", "action": "ALLOW", "risk": "low", "reason": "只读 SELECT，绕过写库门禁", "evidence": {"ast_patterns": {"tables": ["ads.ads_dau_di"], "columns": ["dt", "server_id", "dau", "metric_id"], "joins": [], "cartesian_joins": 0, "missing_where": false, "tautology_where": false, "full_table_write": false, "is_ddl": false, "is_dml": false, "dangerous_flags": []}, "permissions": {"tables": ["ads.ads_dau_di"], "operation": "select", "checked": true}, "explain_cost": {"skipped": true, "reason": "explain disabled / no threshold"}, "environment": {"environment": "gamestream_g7", "operation": "select", "policy_rule": "allow"}}, "operation": "select", "table": "ads.ads_dau_di", "estimated_rows": null, "approval_id": null, "risk_score": 0, "risk_factors": [], "executed": false, "product": "SQLGuard", "datapilot": "EXECUTE"}
 datapilot=EXECUTE action=ALLOW
 --- EXECUTE path: run SELECT on Doris ---
-http POST /v1/execute: {"allowed": true, "rule_id": "ok", "message": "只读 SELECT，绕过写库门禁", "sql": "SELECT dt, server_id, dau, metric_id FROM ads.ads_dau_di WHERE metric_id = 'ads_dau_di' ORDER BY dt, server_id", "action": "ALLOW", "risk": "low", "reason": "只读 SELECT，绕过写库门禁", "evidence": {"ast_patterns": {"tables": ["ads.ads_dau_di"], "columns": ["dt", "server_id", "dau", "metric_id"], "joins": [], "cartesian_joins": 0, "missing_where": false, "tautology_where": false, "full_table_write": false, "is_ddl": false, "is_dml": false, "dangerous_flags": []}, "permissions": {"tables": ["ads.ads_dau_di"], "operation": "select", "checked": true}, "explain_cost": {"skipped": true, "reason": "explain disabled / no threshold"}, "environment": {"environment": "gamestream_g7", "operation": "select", "policy_rule": "allow"}}, "operation": "select", "table": "ads.ads_dau_di", "estimated_rows": null, "approval_id": null, "risk_score": 0, "risk_factors": [], "executed": true, "product": "SQLGuard", "datapilot": "EXECUTE", "rows": [["2026-09-06", 1, 125, "ads_dau_di"], ["2026-09-06", 2, 135, "ads_dau_di"], ["2026-09-06", 3, 114, "ads_dau_di"], ["2026-09-06", 4, 125, "ads_dau_di"], ["2026-09-07", 1, 26, "ads_dau_di"], ["2026-09-07", 2, 22, "ads_dau_di"], ["2026-09-07", 3, 27, "ads_dau_di"], ["2026-09-07", 4, 20, "ads_dau_di"]], "rowcount": 8}
+http POST /v1/execute: {"allowed": true, "rule_id": "ok", "message": "只读 SELECT，绕过写库门禁", "sql": "SELECT dt, server_id, dau, metric_id FROM ads.ads_dau_di WHERE metric_id = 'ads_dau_di' ORDER BY dt, server_id", "action": "ALLOW", "risk": "low", "reason": "只读 SELECT，绕过写库门禁", "evidence": {"ast_patterns": {"tables": ["ads.ads_dau_di"], "columns": ["dt", "server_id", "dau", "metric_id"], "joins": [], "cartesian_joins": 0, "missing_where": false, "tautology_where": false, "full_table_write": false, "is_ddl": false, "is_dml": false, "dangerous_flags": []}, "permissions": {"tables": ["ads.ads_dau_di"], "operation": "select", "checked": true}, "explain_cost": {"skipped": true, "reason": "explain disabled / no threshold"}, "environment": {"environment": "gamestream_g7", "operation": "select", "policy_rule": "allow"}}, "operation": "select", "table": "ads.ads_dau_di", "estimated_rows": null, "approval_id": null, "risk_score": 0, "risk_factors": [], "executed": true, "product": "SQLGuard", "datapilot": "EXECUTE", "rows": [["2026-09-06", 1, 125, "ads_dau_di"], ["2026-09-06", 2, 135, "ads_dau_di"], ["2026-09-06", 3, 114, "ads_dau_di"], ["2026-09-06", 4, 125, "ads_dau_di"], ["2026-09-07", 1, 10, "ads_dau_di"], ["2026-09-07", 2, 22, "ads_dau_di"], ["2026-09-07", 3, 27, "ads_dau_di"], ["2026-09-07", 4, 20, "ads_dau_di"], ["2026-09-07", 88, 330, "ads_dau_di"]], "rowcount": 9}
 rows_from_sqlguard_execute:
 {
-  "rowcount": 8,
+  "rowcount": 9,
   "rows": [
     [
       "2026-09-06",
@@ -77,7 +78,7 @@ rows_from_sqlguard_execute:
     [
       "2026-09-07",
       1,
-      26,
+      10,
       "ads_dau_di"
     ],
     [
@@ -97,6 +98,12 @@ rows_from_sqlguard_execute:
       4,
       20,
       "ads_dau_di"
+    ],
+    [
+      "2026-09-07",
+      88,
+      330,
+      "ads_dau_di"
     ]
   ]
 }
@@ -110,10 +117,10 @@ gate_mode: http POST /v1/check
 gate_result: {"allowed": true, "rule_id": "ok", "message": "只读 SELECT，绕过写库门禁", "sql": "SELECT dt, server_id, dau, pay_users, pay_rate, metric_id FROM ads.ads_pay_rate_di WHERE metric_id = 'ads_pay_rate_di' ORDER BY dt, server_id", "action": "ALLOW", "risk": "low", "reason": "只读 SELECT，绕过写库门禁", "evidence": {"ast_patterns": {"tables": ["ads.ads_pay_rate_di"], "columns": ["dt", "server_id", "dau", "pay_users", "pay_rate", "metric_id"], "joins": [], "cartesian_joins": 0, "missing_where": false, "tautology_where": false, "full_table_write": false, "is_ddl": false, "is_dml": false, "dangerous_flags": []}, "permissions": {"tables": ["ads.ads_pay_rate_di"], "operation": "select", "checked": true}, "explain_cost": {"skipped": true, "reason": "explain disabled / no threshold"}, "environment": {"environment": "gamestream_g7", "operation": "select", "policy_rule": "allow"}}, "operation": "select", "table": "ads.ads_pay_rate_di", "estimated_rows": null, "approval_id": null, "risk_score": 0, "risk_factors": [], "executed": false, "product": "SQLGuard", "datapilot": "EXECUTE"}
 datapilot=EXECUTE action=ALLOW
 --- EXECUTE path: run SELECT on Doris ---
-http POST /v1/execute: {"allowed": true, "rule_id": "ok", "message": "只读 SELECT，绕过写库门禁", "sql": "SELECT dt, server_id, dau, pay_users, pay_rate, metric_id FROM ads.ads_pay_rate_di WHERE metric_id = 'ads_pay_rate_di' ORDER BY dt, server_id", "action": "ALLOW", "risk": "low", "reason": "只读 SELECT，绕过写库门禁", "evidence": {"ast_patterns": {"tables": ["ads.ads_pay_rate_di"], "columns": ["dt", "server_id", "dau", "pay_users", "pay_rate", "metric_id"], "joins": [], "cartesian_joins": 0, "missing_where": false, "tautology_where": false, "full_table_write": false, "is_ddl": false, "is_dml": false, "dangerous_flags": []}, "permissions": {"tables": ["ads.ads_pay_rate_di"], "operation": "select", "checked": true}, "explain_cost": {"skipped": true, "reason": "explain disabled / no threshold"}, "environment": {"environment": "gamestream_g7", "operation": "select", "policy_rule": "allow"}}, "operation": "select", "table": "ads.ads_pay_rate_di", "estimated_rows": null, "approval_id": null, "risk_score": 0, "risk_factors": [], "executed": true, "product": "SQLGuard", "datapilot": "EXECUTE", "rows": [["2026-09-06", 1, 125, 17, 0.136, "ads_pay_rate_di"], ["2026-09-06", 2, 135, 15, 0.1111111111111111, "ads_pay_rate_di"], ["2026-09-06", 3, 114, 6, 0.05263157894736842, "ads_pay_rate_di"], ["2026-09-06", 4, 125, 9, 0.072, "ads_pay_rate_di"], ["2026-09-07", 1, 26, 1, 0.038461538461538464, "ads_pay_rate_di"], ["2026-09-07", 2, 22, 1, 0.045454545454545456, "ads_pay_rate_di"], ["2026-09-07", 3, 27, 0, 0.0, "ads_pay_rate_di"], ["2026-09-07", 4, 20, 1, 0.05, "ads_pay_rate_di"]], "rowcount": 8}
+http POST /v1/execute: {"allowed": true, "rule_id": "ok", "message": "只读 SELECT，绕过写库门禁", "sql": "SELECT dt, server_id, dau, pay_users, pay_rate, metric_id FROM ads.ads_pay_rate_di WHERE metric_id = 'ads_pay_rate_di' ORDER BY dt, server_id", "action": "ALLOW", "risk": "low", "reason": "只读 SELECT，绕过写库门禁", "evidence": {"ast_patterns": {"tables": ["ads.ads_pay_rate_di"], "columns": ["dt", "server_id", "dau", "pay_users", "pay_rate", "metric_id"], "joins": [], "cartesian_joins": 0, "missing_where": false, "tautology_where": false, "full_table_write": false, "is_ddl": false, "is_dml": false, "dangerous_flags": []}, "permissions": {"tables": ["ads.ads_pay_rate_di"], "operation": "select", "checked": true}, "explain_cost": {"skipped": true, "reason": "explain disabled / no threshold"}, "environment": {"environment": "gamestream_g7", "operation": "select", "policy_rule": "allow"}}, "operation": "select", "table": "ads.ads_pay_rate_di", "estimated_rows": null, "approval_id": null, "risk_score": 0, "risk_factors": [], "executed": true, "product": "SQLGuard", "datapilot": "EXECUTE", "rows": [["2026-09-06", 1, 125, 17, 0.136, "ads_pay_rate_di"], ["2026-09-06", 2, 135, 15, 0.1111111111111111, "ads_pay_rate_di"], ["2026-09-06", 3, 114, 6, 0.05263157894736842, "ads_pay_rate_di"], ["2026-09-06", 4, 125, 9, 0.072, "ads_pay_rate_di"], ["2026-09-07", 1, 10, 2, 0.2, "ads_pay_rate_di"], ["2026-09-07", 2, 22, 1, 0.045454545454545456, "ads_pay_rate_di"], ["2026-09-07", 3, 27, 0, 0.0, "ads_pay_rate_di"], ["2026-09-07", 4, 20, 1, 0.05, "ads_pay_rate_di"], ["2026-09-07", 88, 330, 8, 0.024242424242424242, "ads_pay_rate_di"]], "rowcount": 9}
 rows_from_sqlguard_execute:
 {
-  "rowcount": 8,
+  "rowcount": 9,
   "rows": [
     [
       "2026-09-06",
@@ -150,9 +157,9 @@ rows_from_sqlguard_execute:
     [
       "2026-09-07",
       1,
-      26,
-      1,
-      0.038461538461538464,
+      10,
+      2,
+      0.2,
       "ads_pay_rate_di"
     ],
     [
@@ -177,6 +184,14 @@ rows_from_sqlguard_execute:
       20,
       1,
       0.05,
+      "ads_pay_rate_di"
+    ],
+    [
+      "2026-09-07",
+      88,
+      330,
+      8,
+      0.024242424242424242,
       "ads_pay_rate_di"
     ]
   ]
@@ -203,15 +218,14 @@ datapilot=BLOCK action=BLOCK
 --- BLOCK path: skip Doris execute ---
 
 ======== PATH: cross_db_same_name ========
-Prompt: (probe) 跨库同名 hive.ads_dau_di — AST 是否保留 schema
+Prompt: (negative) 跨库同名 hive.ads_dau_di — qualified identity 应 BLOCK
 metric_id: ads_dau_di
 SQL: SELECT dt, server_id, dau, metric_id FROM hive.ads_dau_di WHERE metric_id = 'ads_dau_di'
-expect_gate: SOFT_DOCUMENT
+expect_gate: BLOCK
 gate_mode: http POST /v1/check
 gate_result: {"allowed": false, "rule_id": "schema_hallucination", "message": "Schema hallucination: unknown table(s) ['hive.ads_dau_di'] not in catalog allowlist ['ads.ads_arpu_di', 'ads.ads_churn_di', 'ads.ads_dau_di', 'ads.ads_dungeon_clear_rate_di', 'ads.ads_online_duration_di', 'ads.ads_pay_rate_di', 'ads.ads_retention_nd', 'ads_arpu_di', 'ads_churn_di', 'ads_dau_di', 'ads_dungeon_clear_rate_di', 'ads_online_duration_di', 'ads_pay_rate_di', 'ads_retention_nd']", "sql": "SELECT dt, server_id, dau, metric_id FROM hive.ads_dau_di WHERE metric_id = 'ads_dau_di'", "action": "BLOCK", "risk": "medium", "reason": "Schema hallucination: unknown table(s) ['hive.ads_dau_di'] not in catalog allowlist ['ads.ads_arpu_di', 'ads.ads_churn_di', 'ads.ads_dau_di', 'ads.ads_dungeon_clear_rate_di', 'ads.ads_online_duration_di', 'ads.ads_pay_rate_di', 'ads.ads_retention_nd', 'ads_arpu_di', 'ads_churn_di', 'ads_dau_di', 'ads_dungeon_clear_rate_di', 'ads_online_duration_di', 'ads_pay_rate_di', 'ads_retention_nd']", "evidence": {"ast_patterns": {"tables": ["hive.ads_dau_di"], "columns": ["dt", "server_id", "dau", "metric_id"], "joins": [], "cartesian_joins": 0, "missing_where": false, "tautology_where": false, "full_table_write": false, "is_ddl": false, "is_dml": false, "dangerous_flags": []}, "schema": {"unknown_tables": ["hive.ads_dau_di"], "known_tables": ["ads.ads_arpu_di", "ads.ads_churn_di", "ads.ads_dau_di", "ads.ads_dungeon_clear_rate_di", "ads.ads_online_duration_di", "ads.ads_pay_rate_di", "ads.ads_retention_nd", "ads_arpu_di", "ads_churn_di", "ads_dau_di", "ads_dungeon_clear_rate_di", "ads_online_duration_di", "ads_pay_rate_di", "ads_retention_nd"], "cte_aliases": []}, "permissions": {"table": "hive.ads_dau_di", "operation": "select", "allowed_tables": ["ads.ads_arpu_di", "ads.ads_churn_di", "ads.ads_dau_di", "ads.ads_dungeon_clear_rate_di", "ads.ads_online_duration_di", "ads.ads_pay_rate_di", "ads.ads_retention_nd", "ads_arpu_di", "ads_churn_di", "ads_dau_di", "ads_dungeon_clear_rate_di", "ads_online_duration_di", "ads_pay_rate_di", "ads_retention_nd"]}, "explain_cost": {"skipped": true, "reason": "explain disabled / no threshold"}, "environment": {"environment": "gamestream_g7", "operation": "select", "policy_rule": "allow"}, "unknown_tables": ["hive.ads_dau_di"], "known_tables": ["ads.ads_arpu_di", "ads.ads_churn_di", "ads.ads_dau_di", "ads.ads_dungeon_clear_rate_di", "ads.ads_online_duration_di", "ads.ads_pay_rate_di", "ads.ads_retention_nd", "ads_arpu_di", "ads_churn_di", "ads_dau_di", "ads_dungeon_clear_rate_di", "ads_online_duration_di", "ads_pay_rate_di", "ads_retention_nd"], "cte_aliases": []}, "operation": "select", "table": "hive.ads_dau_di", "estimated_rows": null, "approval_id": null, "risk_score": 100, "risk_factors": ["block", "schema_hallucination", "permission_denied"], "executed": false, "product": "SQLGuard", "datapilot": "BLOCK"}
 datapilot=BLOCK action=BLOCK
-SOFT_DOCUMENT: recorded datapilot=BLOCK action=BLOCK (schema strip probe; not a hard fail)
---- SOFT probe: skip Doris execute (document gate only) ---
+--- BLOCK path: skip Doris execute ---
 
 ======== PATH: block_delete ========
 Prompt: (negative) 清空 DAU 表
@@ -223,14 +237,14 @@ gate_result: {"allowed": false, "rule_id": "delete_without_where", "message": "D
 datapilot=BLOCK action=BLOCK
 --- BLOCK path: skip Doris execute ---
 
-=== DONE 2026-09-07 11:41:21 CST ===
+=== DONE 2026-09-07 13:19:46 CST ===
 result_file=/mnt/c/Users/tangy/source/repos/GameStream/docs/g7-closed-loop-result.txt
 OK: wrote /mnt/c/Users/tangy/source/repos/GameStream/docs/g7-closed-loop-result.txt
 --- g7 result excerpt ---
 === GameStream G7 closed loop ===
 === 0) Doris ADS probe ===
-ads_dau_di rows=8
-ads_pay_rate_di rows=8
+ads_dau_di rows=9
+ads_pay_rate_di rows=9
 === fixture closed-loop paths (Agent-shaped NL→SQL→SQLGuard→Doris) ===
 ======== PATH: dau ========
 gate_mode: http POST /v1/check
@@ -252,8 +266,8 @@ datapilot=BLOCK action=BLOCK
 ======== PATH: block_delete ========
 gate_mode: http POST /v1/check
 datapilot=BLOCK action=BLOCK
-=== DONE 2026-09-07 11:41:21 CST ===
-[STATUS] g7_closed_loop=PASS backend=doris detail=exit=0 rowcount=8 hive_gate=BLOCK ads_dau_di rows=8 (see /mnt/c/Users/tangy/source/repos/GameStream/docs/g7-closed-loop-result.txt)
+=== DONE 2026-09-07 13:19:46 CST ===
+[STATUS] g7_closed_loop=PASS backend=doris detail=exit=0 rowcount=9 hive_gate=BLOCK ads_dau_di rows=9 (see /mnt/c/Users/tangy/source/repos/GameStream/docs/g7-closed-loop-result.txt)
 
 === b) Cross-db hive.ads_dau_di BLOCK (SQLGuard 1.1.2) ===
 [b] starting temporary SQLGuard serve for cross-db check...
@@ -262,12 +276,12 @@ product=SQLGuard version=1.1.2 (expect SQLGuard 1.1.2)
 check_response={"allowed": false, "rule_id": "schema_hallucination", "message": "Schema hallucination: unknown table(s) ['hive.ads_dau_di'] not in catalog allowlist ['ads.ads_arpu_di', 'ads.ads_churn_di', 'ads.ads_dau_di', 'ads.ads_dungeon_clear_rate_di', 'ads.ads_online_duration_di', 'ads.ads_pay_rate_di', 'ads.ads_retention_nd', 'ads_arpu_di', 'ads_churn_di', 'ads_dau_di', 'ads_dungeon_clear_rate_di', 'ads_online_duration_di', 'ads_pay_rate_di', 'ads_retention_nd']", "sql": "SELECT dt, server_id, dau, metric_id FROM hive.ads_dau_di WHERE metric_id = 'ads_dau_di'", "action": "BLOCK", "risk": "medium", "reason": "Schema hallucination: unknown table(s) ['hive.ads_dau_di'] not in catalog allowlist ['ads.ads_arpu_di', 'ads.ads_churn_di', 'ads.ads_dau_di', 'ads.ads_dungeon_clear_rate_di', 'ads.ads_online_duration_di', 'ads.ads_pay_rate_di', 'ads.ads_retention_nd', 'ads_arpu_di', 'ads_churn_di', 'ads_dau_di', 'ads_dungeon_clear_rate_di', 'ads_online_duration_di', 'ads_pay_rate_di', 'ads_retention_nd']", "evidence": {"ast_patterns": {"tables": ["hive.ads_dau_di"], "columns": ["dt", "server_id", "dau", "metric_id"], "joins": [], "cartesian_joins": 0, "missing_where": false, "tautology_where": false, "full_table_write": false, "is_ddl": false, "is_dml": false, "dangerous_flags": []}, "schema": {"unknown_tables": ["hive.ads_dau_di"], "known_tables": ["ads.ads_arpu_di", "ads.ads_churn_di", "ads.ads_dau_di", "ads.ads_dungeon_clear_rate_di", "ads.ads_online_duration_di", "ads.ads_pay_rate_di", "ads.ads_retention_nd", "ads_arpu_di", "ads_churn_di", "ads_dau_di", "ads_dungeon_clear_rate_di", "ads_online_duration_di", "ads_pay_rate_di", "ads_retention_nd"], "cte_aliases": []}, "permissions": {"table": "hive.ads_dau_di", "operation": "select", "allowed_tables": ["ads.ads_arpu_di", "ads.ads_churn_di", "ads.ads_dau_di", "ads.ads_dungeon_clear_rate_di", "ads.ads_online_duration_di", "ads.ads_pay_rate_di", "ads.ads_retention_nd", "ads_arpu_di", "ads_churn_di", "ads_dau_di", "ads_dungeon_clear_rate_di", "ads_online_duration_di", "ads_pay_rate_di", "ads_retention_nd"]}, "explain_cost": {"skipped": true, "reason": "explain disabled / no threshold"}, "environment": {"environment": "gamestream_g7", "operation": "select", "policy_rule": "allow"}, "unknown_tables": ["hive.ads_dau_di"], "known_tables": ["ads.ads_arpu_di", "ads.ads_churn_di", "ads.ads_dau_di", "ads.ads_dungeon_clear_rate_di", "ads.ads_online_duration_di", "ads.ads_pay_rate_di", "ads.ads_retention_nd", "ads_arpu_di", "ads_churn_di", "ads_dau_di", "ads_dungeon_clear_rate_di", "ads_online_duration_di", "ads_pay_rate_di", "ads_retention_nd"], "cte_aliases": []}, "operation": "select", "table": "hive.ads_dau_di", "estimated_rows": null, "approval_id": null, "risk_score": 100, "risk_factors": ["block", "schema_hallucination", "permission_denied"], "executed": false, "product": "SQLGuard", "datapilot": "BLOCK"}
 [STATUS] sqlguard_cross_db_hive=PASS backend=sqlguard-http detail=version=1.1.2 datapilot=BLOCK action=BLOCK rule_id=schema_hallucination
 
-=== c) DataPilot offline P0 (no-mock-fallback @ e3e603d) ===
-DataPilot HEAD=e3e603d (pin e3e603d)
+=== c) DataPilot offline P0 (no-mock-fallback @ 2541623) ===
+DataPilot HEAD=2541623 (pin 2541623)
 --- c2) optional DataPilot Doris G7 (SKIP if unreachable) ---
 ..                                                                       [100%]
-2 passed in 0.89s
-[STATUS] datapilot_doris_g7=PASS backend=doris detail=..                                                                       [100%] 2 passed in 0.89s 
+2 passed in 0.95s
+[STATUS] datapilot_doris_g7=PASS backend=doris detail=..                                                                       [100%] 2 passed in 0.95s 
 
 === d) SQLGuard unit tests / CI summary (expect @7dc85dd / 1.1.2) ===
 routes contract: /v1/check|/v1/block|/v1/execute
@@ -275,19 +289,19 @@ SQLGuard HEAD=7dc85dd (pin 7dc85dd / 1.1.2)
 [d] gh not available — skip CI list
 [STATUS] sqlguard_unit=FAIL backend=pytest-local detail=HEAD=7dc85dd entry=pytest -q (g7-venv) exit=1 ::  !!   corresp(dist, value, root_dir) =========================== short test summary info ============================ FAILED tests/test_installed_init_check.py::test_wheel_install_init_bare_check  | CI: gh=n/a
 
-=== SUMMARY (real statuses only; NO G8) ===
-pins: GameStream=2253b25 SQLGuard=7dc85dd@1.1.2 DataPilot=e3e603d
-pin_results: GS=[pin] GameStream HEAD=4e54c7b expect=2253b25 MISMATCH
-MISMATCH:4e54c7b SG=[pin] SQLGuard HEAD=7dc85dd == 7dc85dd OK
-OK:7dc85dd DP=[pin] DataPilot HEAD=e3e603d == e3e603d OK
-OK:e3e603d
-  g7_closed_loop | PASS | backend=doris | exit=0 rowcount=8 hive_gate=BLOCK ads_dau_di rows=8 (see /mnt/c/Users/tangy/source/repos/GameStream/docs/g7-closed-loop-result.txt)
-  sqlguard_cross_db_hive | PASS | backend=sqlguard-http | version=1.1.2 datapilot=BLOCK action=BLOCK rule_id=schema_hallucination
-  datapilot_offline_p0 | PASS | backend=offline-pytest | HEAD=e3e603d entry=pytest -m suite_p0 -q :: ...................                                                      [100%] 19 passed, 10 deselected in 29.56s 
-  datapilot_doris_g7 | PASS | backend=doris | ..                                                                       [100%] 2 passed in 0.89s 
-  sqlguard_unit | FAIL | backend=pytest-local | HEAD=7dc85dd entry=pytest -q (g7-venv) exit=1 ::  !!   corresp(dist, value, root_dir) =========================== short test summary info ============================ FAILED tests/test_installed_init_check.py::test_wheel_install_init_bare_check  | CI: gh=n/a
-DONE 2026-09-07 11:42:13 CST
+=== SUMMARY (real statuses only) ===
+mode=report-only
+pin_baselines: GameStream=2253b25 SQLGuard=7dc85dd@1.1.2 DataPilot=2541623
+pin_results(actual): GS=OK:5fe098c1ff5288597f4c21754610f4314f36acd6:dirty; 10 files changed, 318 insertions(+), 402 deletions(-) SG=OK:7dc85dddf00c0b885b221b4f54359bf559d1fdda:dirty+untracked=1; 112 files changed, 0 insertions(+), 0 deletions(-) DP=OK:254162338e1969e182f8d67ed175a3297f049c4c:dirty+untracked=18; 45 files changed, 625 insertions(+), 625 deletions(-)
+  g7_closed_loop | PASS | required=1 | backend=doris | exit=0 rowcount=9 hive_gate=BLOCK ads_dau_di rows=9 (see /mnt/c/Users/tangy/source/repos/GameStream/docs/g7-closed-loop-result.txt)
+  sqlguard_cross_db_hive | PASS | required=1 | backend=sqlguard-http | version=1.1.2 datapilot=BLOCK action=BLOCK rule_id=schema_hallucination
+  datapilot_offline_p0 | PASS | required=1 | backend=offline-pytest | HEAD=2541623 entry=pytest -m suite_p0 -q :: .....................................                                    [100%] 37 passed, 10 deselected in 24.75s 
+  datapilot_doris_g7 | PASS | required=0 | backend=doris | ..                                                                       [100%] 2 passed in 0.95s 
+  sqlguard_unit | FAIL | required=1 | backend=pytest-local | HEAD=7dc85dd entry=pytest -q (g7-venv) exit=1 ::  !!   corresp(dist, value, root_dir) =========================== short test summary info ============================ FAILED tests/test_installed_init_check.py::test_wheel_install_init_bare_check  | CI: gh=n/a
+gate: overall=FAIL exit_rc=1 fail=1 mismatch=0 skip=0 notes=sqlguard_unit=FAIL
+DONE 2026-09-07 13:20:31 CST
 result_file=docs/suite-acceptance-result.txt
+mode=report-only → forcing exit 0 (report written; overall was FAIL)
 
 === CI evidence (appended from runner with gh; WSL had no gh) ===
 command: gh run list -R tangyf07/sql-write-gate --branch main --limit 3
@@ -298,5 +312,7 @@ completed	success	docs(readme): 三件套中文定位 + DataPilot BLOCK/EXECUTE 
 NOTE: local WSL sqlguard_unit FAIL = tests/test_installed_init_check.py::test_wheel_install_init_bare_check
       reason: host python3.14-venv missing when pytest builds isolated env (make not installed in WSL).
       GitHub CI for 7dc85dd (v1.1.2) conclusion=success (see above).
-NOTE: GameStream Windows clone HEAD=4e54c7b behind pin 2253b25; suite files overlaid; after this commit lands, pin becomes landing SHA or later.
-DONE_CI_APPEND 2026-09-07 11:42:45 CST
+NOTE: strict gate would exit 1 (overall=FAIL) due to required sqlguard_unit FAIL; this run used MODE=report-only to refresh the report.
+NOTE: DataPilot pin 2541623 suite_p0 = 37 passed, 10 deselected.
+NOTE: GameStream HEAD was dirty with this acceptance wrap-up patch at run time; after landing commit, re-pin actual_HEAD will be clean.
+DONE_CI_APPEND 2026-09-07 13:21:00 CST

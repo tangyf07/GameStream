@@ -459,10 +459,10 @@ def assemble(env: dict[str, str]) -> dict[str, Any]:
         "definitions": {
             "baseline": "Kafka lag + Flink sample-once + checkpoints + vertices backpressure BEFORE continuous load starts",
             "throughput_input": "total produced events / total produce wall seconds across continuous chunked produce + probes",
-            "throughput_flink": "Flink REST numRecordsInPerSecond sampled during continuous-load poll windows",
+            "throughput_flink": "Flink REST numRecordsInPerSecond during poll windows; prefer source-vertex sample; if sum-of-operators used it is NOT source throughput",
             "kafka_lag": "kafka-consumer-groups.sh --describe --group for Flink source group (baseline + per-round + final)",
             "checkpoint_duration": "Flink REST /jobs/:id/checkpoints history[].end_to_end_duration (ms)",
-            "doris_e2e_p95": "P95 of per-round Doris-query-visible latency: produce_probe_end -> Doris SELECT matches expected dau/pay",
+            "doris_e2e_p95": "Per-round Doris-query-visible latency (produce_probe_end -> Doris SELECT); with n=2 P95≈max — prefer quoting ~39-41s可见; includes console-consumer serial + script materialize",
             "backpressure": "Flink backPressuredTimeMsPerSecond and/or vertices/:id/backpressure during/after load",
         },
         "baseline_before_load": {
@@ -503,7 +503,7 @@ def assemble(env: dict[str, str]) -> dict[str, Any]:
     out.write_text(json.dumps(result, indent=2, ensure_ascii=False), encoding="utf-8")
 
     lines = []
-    lines.append(f"G8 steady-state bench  tier={env['TIER']}  ts={env['TS_UTC']}")
+    lines.append(f"G8 chunked-load / batch-visibility  tier={env['TIER']}  ts={env['TS_UTC']}")
     lines.append(f"result_json={out}")
     lines.append(f"raw_dir={raw}")
     lines.append(f"job_id={env['JOB_ID']}  rounds={rounds_n}  doris_alive={env.get('ALIVE')}")
