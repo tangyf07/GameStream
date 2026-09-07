@@ -34,6 +34,12 @@ flowchart LR
 
 **勿夸大：** G1 = 组件可起 + 端口可达。**G2 = 有界 E2E**（小流量 Simulator→Kafka→Flink→Doris ADS，可复跑 `e2e_g2.sh`）。**G3–G5 = 独立演练**（watermark / checkpoint / kill-TM），**不是**与 G2 绑在一起的「持续 Doris 主流水线」。**G6 已做**：Docker 栈实测吞吐/Lag/Checkpoint/E2E P95/反压（见 [`docs/g6-bench.md`](docs/g6-bench.md)，数字只引自 `bench/results/g6_*.json`）。**G7 已做**：NL/Agent→SQLGuard→Doris ADS 闭环（strict hallucination；见 [`docs/g7-closed-loop.md`](docs/g7-closed-loop.md)）——消费**已有** ADS 行，不负责灌数。**尚未统一**「持续 Doris 主流水线 + 问数」（为 G8 铺路，**本仓未实现 G8**）。**未宣称** 倾斜专项、编造 SLA、K8s/Spark/Iceberg 生产部署。lite 与 prod **同口径**（同一套 `metric_id`）。
 
+## 三仓固化验收
+
+**三仓固化验收**：[`docs/suite-acceptance.md`](docs/suite-acceptance.md)（GameStream `2253b25`+ / SQLGuard `7dc85dd`=1.1.2 / DataPilot `e3e603d`；**NO G8**）。
+
+细节与状态语义见文档；跑：`bash scripts/suite_acceptance.sh`（WSL 请先 `sed` 去 CRLF）。报告：[`docs/suite-acceptance-result.txt`](docs/suite-acceptance-result.txt)。
+
 ## G2 快速跑（WSL，小流量）
 
 ```bash

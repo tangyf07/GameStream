@@ -1,0 +1,36 @@
+# GameStream 三仓固化验收 pin（NO G8）
+# suite_acceptance.sh 只读取 [pins] 段的 SHA。
+# 文档：docs/suite-acceptance.md
+
+[pins]
+GameStream = 2253b25
+GameStream_repo = https://github.com/tangyf07/GameStream
+GameStream_note = base for suite-acceptance; landing commit will be newer on main
+
+SQLGuard = 7dc85dd
+SQLGuard_repo = https://github.com/tangyf07/sql-write-gate
+SQLGuard_product = SQLGuard
+SQLGuard_package = sql-write-gate
+SQLGuard_version = 1.1.2
+SQLGuard_note = v1.1.2; inherits 1.1.1 qualified identity (hive.ads_dau_di BLOCK)
+SQLGuard_test = make test
+SQLGuard_test_optional = pytest -q tests/test_v110.py
+SQLGuard_routes = /v1/check|/v1/block|/v1/execute
+SQLGuard_ci = gh run list -R tangyf07/sql-write-gate --branch main --limit 3
+
+DataPilot = e3e603d
+DataPilot_repo = https://github.com/tangyf07/DataPilot
+DataPilot_baseline_p0 = 285202c
+DataPilot_note = suite_p0 (pytest -m suite_p0); behavioral baseline includes 285202c P0
+
+[paths.wsl]
+path_GameStream = /mnt/c/Users/tangy/source/repos/GameStream
+path_SQLGuard = /mnt/c/Users/tangy/source/repos/sql-write-gate
+path_DataPilot = /mnt/c/Users/tangy/source/repos/DataPilot
+
+[checks]
+g7_closed_loop = MODE=fixture bash scripts/g7_closed_loop.sh
+sqlguard_cross_db_hive = hive.ads_dau_di BLOCK on 1.1.2
+datapilot_offline_p0 = pytest -m suite_p0 -q
+datapilot_doris_optional = pytest tests/test_doris_g7.py -q  # SKIP if no Doris
+sqlguard_unit = make test  # live PG/MySQL may SKIP; gh run list for CI
