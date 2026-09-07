@@ -1,0 +1,67 @@
+=== G3 stream semantics result ===
+time_utc=2026-09-07T01:14:56Z  wm_sec=5  job=2b3d67892b65ade8c476874a333aac50
+
+=== expected (from generator) ===
+{
+  "watermark_seconds": 5,
+  "base_event_time": "2026-09-07 10:00:00",
+  "produce_count": 12,
+  "unique_event_ids": 11,
+  "duplicate_event_ids": [
+    "g3-dup-01"
+  ],
+  "late_dropped_event_ids": [
+    "g3-late-01"
+  ],
+  "late_policy": "drop (Flink SQL default allowedLateness=0; no side-output in pure SQL)",
+  "windows": [
+    {
+      "window_start": "2026-09-07 10:00:00",
+      "window_end": "2026-09-07 10:01:00",
+      "event_cnt": 7,
+      "player_cnt": 7,
+      "note": "dedup keeps g3-dup-01 once; g3-late-01 excluded"
+    },
+    {
+      "window_start": "2026-09-07 10:01:00",
+      "window_end": "2026-09-07 10:02:00",
+      "event_cnt": 2,
+      "player_cnt": 2,
+      "note": "close_w1 + w2; close_w2 only advances WM"
+    }
+  ]
+}
+
+=== Kafka gamestream.g3.window_results ===
+{"window_start":"2026-09-07 10:00:00","window_end":"2026-09-07 10:01:00","event_cnt":7,"player_cnt":7,"metric_id":"g3_window_demo"}
+{"window_start":"2026-09-07 10:01:00","window_end":"2026-09-07 10:02:00","event_cnt":2,"player_cnt":2,"metric_id":"g3_window_demo"}
+
+=== Kafka gamestream.g3.dedup_audit (ROW_NUMBER first-wins audit) ===
+{"event_id":"g3-in-01","event_type":"login","event_time":"2026-09-07 10:00:05","player_id":1001,"server_id":1,"tag":"in_order"}
+{"event_id":"g3-in-02","event_type":"login","event_time":"2026-09-07 10:00:15","player_id":1002,"server_id":1,"tag":"in_order"}
+{"event_id":"g3-in-03","event_type":"enter_dungeon","event_time":"2026-09-07 10:00:25","player_id":1003,"server_id":1,"tag":"in_order"}
+{"event_id":"g3-ooo-hi","event_type":"login","event_time":"2026-09-07 10:00:30","player_id":1004,"server_id":1,"tag":"ooo_advance"}
+{"event_id":"g3-ooo-lo","event_type":"login","event_time":"2026-09-07 10:00:27","player_id":1005,"server_id":1,"tag":"ooo_within"}
+{"event_id":"g3-dup-01","event_type":"recharge","event_time":"2026-09-07 10:00:35","player_id":1006,"server_id":1,"tag":"dup_first"}
+{"event_id":"g3-in-04","event_type":"logout","event_time":"2026-09-07 10:00:50","player_id":1007,"server_id":1,"tag":"in_order"}
+{"event_id":"g3-w2-01","event_type":"login","event_time":"2026-09-07 10:01:10","player_id":2001,"server_id":1,"tag":"close_w1"}
+{"event_id":"g3-late-01","event_type":"login","event_time":"2026-09-07 10:00:40","player_id":9001,"server_id":1,"tag":"late_beyond_wm"}
+{"event_id":"g3-w2-02","event_type":"login","event_time":"2026-09-07 10:01:20","player_id":2002,"server_id":1,"tag":"w2"}
+{"event_id":"g3-w2-close","event_type":"login","event_time":"2026-09-07 10:02:10","player_id":3001,"server_id":1,"tag":"close_w2"}
+(empty/timeout)
+
+=== load Doris from Kafka results (avoid dual Flink window+JDBC on 7.6Gi) ===
+loaded 2 rows into ads.g3_window_demo
+=== Doris ads.g3_window_demo ===
+window_start	window_end	event_cnt	player_cnt	metric_id
+2026-09-07 10:00:00	2026-09-07 10:01:00	7	7	g3_window_demo
+2026-09-07 10:01:00	2026-09-07 10:02:00	2	2	g3_window_demo
+
+=== comparison notes ===
+produce_count=12 unique_ids=11 late_dropped=['g3-late-01']
+late_policy=drop (Flink SQL default allowedLateness=0; no side-output in pure SQL)
+OK window 2026-09-07 10:00:00: actual event_cnt=7 player_cnt=7 | expected 7/7 | dedup keeps g3-dup-01 once; g3-late-01 excluded
+OK window 2026-09-07 10:01:00: actual event_cnt=2 player_cnt=2 | expected 2/2 | close_w1 + w2; close_w2 only advances WM
+dedup_proof: W1 event_cnt expected 7 (8 if dup double-counted without DISTINCT)
+late_proof: g3-late-01 must NOT inflate W1; expected player_cnt=7 (9001 excluded)
+OVERALL: PASS
