@@ -11,7 +11,7 @@
 |----|-----------------|------|
 | **GameStream** | `ed876e1`（或更新的 main） | suite 基线（strict gate + G8 文案诚实）；**实际 HEAD 可更新**（pin 为 ancestor 即 OK） |
 | **SQLGuard**（sql-write-gate） | `7dc85dd` → **v1.1.2** | `make test`；healthz `1.1.2`；继承 1.1.1 限定名身份（`hive.ads_dau_di` BLOCK）；路由 `/v1/check` `/v1/block` `/v1/execute` |
-| **DataPilot** | **`2541623`** | `pytest -m suite_p0`（**37 passed**；行为超集 `e3e603d`）；**行为基线含 `285202c` P0**（no-mock-fallback / 时间谓词 / HTTP 契约） |
+| **DataPilot** | **`2541623`**（或更新的 main） | `pytest -m suite_p0`（**37 passed**）；pin 为 ancestor 即 OK（并行开发）；**行为基线含 `285202c` P0** |
 
 **重要：** `versions.lock` 里的 pin 是 **验收对照基线**；结果文件 **另记** 各仓 **actual full SHA** 与 dirty/diff。二者可以不同（尤其 GameStream 前进时）。
 
@@ -65,7 +65,7 @@ MODE=report-only bash /tmp/suite_acc.sh
 | **c2) `datapilot_doris_g7`** | 可选 `pytest tests/test_doris_g7.py` | no | 真连 Doris 且绿 | 联调失败（**FAIL 优先于 SKIP**） | Doris 不可达 → **SKIP（勿当 PASS）** |
 | **d) `sqlguard_unit`** | `make test`（或 `pytest -q`）；可选 `tests/test_v110.py`；CI 实录 | **yes** | 本地绿 **或** 本地 env 阻断（无 make / python3.x-venv / ensurepip）且 **CI success@pin**（backend=`github-ci`，detail 写明 local≠PASS） | 本地真红且无 CI 证据 | clone 缺失 |
 
-**Pin 结果 token：** `OK:<full_sha>:<dirty_summary>` / `MISMATCH:<full_sha>:…` / `MISSING:n/a`。GameStream 允许「pin 或更新」；SQLGuard / DataPilot 要求 short-SHA 对齐 pin。
+**Pin 结果 token：** `OK:<full_sha>:<dirty_summary>` / `MISMATCH:<full_sha>:…` / `MISSING:n/a`。GameStream / DataPilot 允许「pin 或更新」（ancestor）；SQLGuard 要求 short-SHA 对齐 release pin。
 
 **重要：**
 
