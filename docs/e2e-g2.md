@@ -79,3 +79,7 @@ _(filled by `scripts/e2e_g2.sh` → `docs/e2e-g2-query-result.txt`; paste below 
 6. **Windows quoting** — run via `wsl -e bash .../script.sh` after `sed` CRLF; avoid complex PowerShell quoting.
 7. **Doris BE must be Alive** (`SHOW BACKENDS`) before DDL; FE healthy alone is not enough.
 8. **Payload JSON shape** — unused payload fields may be absent; Flink `ROW<>` + `json.ignore-parse-errors=true` tolerates sparse objects.
+
+9. **`docker exec` sql-client classpath**: entrypoint sets `/opt/flink/usrlib` on JM/TM start, but `docker exec ... sql-client.sh` does **not**. Always pass `-j` for Kafka/JDBC/MySQL jars (see `scripts/e2e_g2.sh`).
+10. **Doris 3.0 Unique DDL**: avoid legacy `REPLACE NULL_DEFAULT`; use plain `DEFAULT "0"` column defs for G2 demo tables (`sql/ddl/doris_ads_g2.sql`).
+11. **`/mnt/c` script corruption**: trailing `r` on lines ending with `...manager` has been observed; copy scripts to `/tmp` before bash.
