@@ -1,0 +1,91 @@
+===== G8 resident Doris materializer acceptance =====
+host=tangyf root=/mnt/c/Users/tangy/source/repos/GameStream dt=2026-09-07 server_id=1
+topics in=gamestream.g8r.ods.events dau=gamestream.g8r.ads_dau pay=gamestream.g8r.ads_pay_rate
+flink_group=gamestream-g8r-ads-v1 mat_group=gamestream-g8r-doris-materializer
+honesty: acceptance = produce + Doris SELECT only; NO script materialize in wait path
+sink: Flink upsert-kafka ALS+PK -> resident materializer -> Doris UNIQUE KEY; NOT EO-2PC
+[g8r] Doris Alive=true
+[g8r] baseline_doris=NULL NULL NULL
+[g8r] flink_job=1099b41406c615898595bcc279deba2b
+[g8r] materializer started pid=24084 log=/tmp/g8r_resident_materializer.log
+[g8r] after_batch1_resident OK doris=4 1 0.25 try=2 (SELECT-only; resident materializer write path)
+[g8r] after_batch1=[g8r] after_batch1_resident OK doris=4 1 0.25 try=2 (SELECT-only; resident materializer write path)
+4 1 0.25 visible_after_sec=4
+[g8r] after_batch2_resident OK doris=6 2 0.3333333333333333 try=1 (SELECT-only; resident materializer write path)
+[g8r] after_batch2=[g8r] after_batch2_resident OK doris=6 2 0.3333333333333333 try=1 (SELECT-only; resident materializer write path)
+6 2 0.3333333333333333 visible_after_sec=3
+[g8r] materializer killed pid=24084
+[g8r] during_kill_before=6 2 0.3333333333333333 during_kill_after_25s=6 2 0.3333333333333333
+[g8r] OK: Doris unchanged while materializer down (write path not driven by accept script)
+[g8r] materializer started pid=26736 log=/tmp/g8r_resident_materializer.log
+[g8r] after_restart_catchup OK doris=8 2 0.25 try=1 (SELECT-only; resident materializer write path)
+[g8r] after_restart=[g8r] after_restart_catchup OK doris=8 2 0.25 try=1 (SELECT-only; resident materializer write path)
+8 2 0.25
+[g8r] after_dup_produce_doris=8 2 0.25 (expect still 8 2 — UNIQUE KEY idempotent / Flink event_id dedup)
+===== PASS =====
+measured: batch1=[g8r] after_batch1_resident OK doris=4 1 0.25 try=2 (SELECT-only; resident materializer write path)
+4 1 0.25 batch2=[g8r] after_batch2_resident OK doris=6 2 0.3333333333333333 try=1 (SELECT-only; resident materializer write path)
+6 2 0.3333333333333333 kill_window=6 2 0.3333333333333333 restart=[g8r] after_restart_catchup OK doris=8 2 0.25 try=1 (SELECT-only; resident materializer write path)
+8 2 0.25 replay=8 2 0.25
+boundaries: at-least-once offsets; UNIQUE KEY upsert; tombstone=DELETE; NOT EO-2PC; accept script SELECT-only
+materializer_log_tail:
+2026-09-07 19:02:37,670 INFO kafka.net.transport <KafkaTCPTransport [127.0.0.1:19092<-48612]>: connected to <socket.socket fd=6, family=2, type=1, proto=6, laddr=('127.0.0.1', 48612), raddr=('127.0.0.1', 19092)>
+2026-09-07 19:02:37,674 INFO kafka.net.connection <KafkaConnection node_id=bootstrap-0 host=[127.0.0.1:19092<-48612] broker_version=unknown (initializing)>: Broker version identified as 3.7
+2026-09-07 19:02:37,674 INFO kafka.net.connection <KafkaConnection node_id=bootstrap-0 host=[127.0.0.1:19092<-48612] broker_version=(3, 7) (connected)>: Connected
+2026-09-07 19:02:37,678 INFO kafka.cluster Updated metadata: ClusterMetadata(brokers: 1, topics: 0, coordinators: 0)
+2026-09-07 19:02:37,678 INFO kafka.net.manager Bootstrap complete: ClusterMetadata(brokers: 1, topics: 0, coordinators: 0)
+2026-09-07 19:02:37,678 INFO kafka.net.manager Closing bootstrap connection bootstrap-0
+2026-09-07 19:02:37,679 INFO kafka.net.transport <KafkaTCPTransport [127.0.0.1:19092<-48612]>: Closing transport
+2026-09-07 19:02:37,679 INFO kafka.net.connection <KafkaConnection node_id=bootstrap-0 broker_version=(3, 7) (disconnected)>: Connection closed
+2026-09-07 19:02:37,679 INFO kafka.cluster Starting metadata refresh loop
+2026-09-07 19:02:37,679 INFO kafka.consumer.subscription_state Updating subscribed topics to: ('gamestream.g8r.ads_dau', 'gamestream.g8r.ads_pay_rate')
+2026-09-07 19:02:37,680 INFO kafka.net.manager Initializing connection for node_id 1 at localhost:19092 (rack=None)
+2026-09-07 19:02:37,680 INFO kafka.net.transport <KafkaTCPTransport [127.0.0.1:19092<-48616]>: connected to <socket.socket fd=6, family=2, type=1, proto=6, laddr=('127.0.0.1', 48616), raddr=('127.0.0.1', 19092)>
+2026-09-07 19:02:37,682 INFO kafka.net.connection <KafkaConnection node_id=1 host=[127.0.0.1:19092<-48616] broker_version=(3, 7) (connected)>: Connected
+2026-09-07 19:02:37,684 INFO kafka.cluster Coordinator for GROUP/gamestream-g8r-doris-materializer is MetadataResponseBroker(node_id='coordinator-1', host='localhost', port=19092, rack=None)
+2026-09-07 19:02:37,684 INFO kafka.coordinator Discovered coordinator coordinator-1 for group gamestream-g8r-doris-materializer
+2026-09-07 19:02:37,684 INFO kafka.net.manager Initializing connection for node_id coordinator-1 at localhost:19092 (rack=None)
+2026-09-07 19:02:37,685 INFO kafka.coordinator.consumer Revoking previously assigned partitions set() for group gamestream-g8r-doris-materializer
+2026-09-07 19:02:37,685 INFO kafka.net.transport <KafkaTCPTransport [127.0.0.1:19092<-48624]>: connected to <socket.socket fd=8, family=2, type=1, proto=6, laddr=('127.0.0.1', 48624), raddr=('127.0.0.1', 19092)>
+2026-09-07 19:02:37,685 INFO kafka.coordinator (Re-)joining group gamestream-g8r-doris-materializer
+2026-09-07 19:02:37,688 INFO kafka.net.connection <KafkaConnection node_id=coordinator-1 host=[127.0.0.1:19092<-48624] broker_version=(3, 7) (connected)>: Connected
+2026-09-07 19:02:37,690 INFO kafka.coordinator Received member id kafka-python-3.0.11-19505b84-4ddf-4e3f-a105-531df860c18f for group gamestream-g8r-doris-materializer; will retry join-group
+2026-09-07 19:02:37,690 INFO kafka.coordinator (Re-)joining group gamestream-g8r-doris-materializer
+2026-09-07 19:02:37,692 INFO kafka.coordinator Successfully joined group gamestream-g8r-doris-materializer <Generation 4 (member_id: kafka-python-3.0.11-19505b84-4ddf-4e3f-a105-531df860c18f, protocol: range)>
+2026-09-07 19:02:37,692 INFO kafka.coordinator Elected group leader -- performing partition assignments using range
+2026-09-07 19:02:37,692 WARNING kafka.coordinator.assignors.range No partition metadata for topic gamestream.g8r.ads_dau
+2026-09-07 19:02:37,692 WARNING kafka.coordinator.assignors.range No partition metadata for topic gamestream.g8r.ads_pay_rate
+2026-09-07 19:02:37,702 INFO kafka.consumer.subscription_state Updated partition assignment: []
+2026-09-07 19:02:37,702 INFO kafka.coordinator.consumer Setting newly assigned partitions set() for group gamestream-g8r-doris-materializer
+2026-09-07 19:02:37,781 INFO kafka.cluster Updated metadata: ClusterMetadata(brokers: 1, topics: 2, coordinators: 1)
+2026-09-07 19:02:37,803 INFO kafka.coordinator.consumer Revoking previously assigned partitions set() for group gamestream-g8r-doris-materializer
+2026-09-07 19:02:37,804 INFO kafka.coordinator (Re-)joining group gamestream-g8r-doris-materializer
+2026-09-07 19:02:37,806 INFO kafka.coordinator Successfully joined group gamestream-g8r-doris-materializer <Generation 5 (member_id: kafka-python-3.0.11-19505b84-4ddf-4e3f-a105-531df860c18f, protocol: range)>
+2026-09-07 19:02:37,806 INFO kafka.coordinator Elected group leader -- performing partition assignments using range
+2026-09-07 19:02:37,808 INFO kafka.consumer.subscription_state Updated partition assignment: [TopicPartition(topic='gamestream.g8r.ads_dau', partition=0), TopicPartition(topic='gamestream.g8r.ads_pay_rate', partition=0)]
+2026-09-07 19:02:37,808 INFO kafka.coordinator.consumer Setting newly assigned partitions {TopicPartition(topic='gamestream.g8r.ads_pay_rate', partition=0), TopicPartition(topic='gamestream.g8r.ads_dau', partition=0)} for group gamestream-g8r-doris-materializer
+2026-09-07 19:02:37,884 INFO kafka.cluster Updated metadata: ClusterMetadata(brokers: 1, topics: 2, coordinators: 1)
+2026-09-07 19:02:37,902 INFO g8.doris_materializer applied UPSERT pay 2026-09-07/1 dau=7 pay=2 rate=0.2857142857142857 topic=gamestream.g8r.ads_pay_rate part=0 off=6
+2026-09-07 19:02:37,948 INFO g8.doris_materializer applied UPSERT pay 2026-09-07/1 dau=8 pay=2 rate=0.25 topic=gamestream.g8r.ads_pay_rate part=0 off=7
+2026-09-07 19:02:37,995 INFO g8.doris_materializer applied UPSERT dau 2026-09-07/1 dau=7 topic=gamestream.g8r.ads_dau part=0 off=6
+2026-09-07 19:02:38,042 INFO g8.doris_materializer applied UPSERT dau 2026-09-07/1 dau=8 topic=gamestream.g8r.ads_dau part=0 off=7
+[g8r] materializer killed pid=26736
+result_file=/mnt/c/Users/tangy/source/repos/GameStream/docs/g8-resident-materializer-result.txt
+
+===== MEASURED (cleaned) =====
+host=tangyf Asia/Shanghai 2026-09-07 ~19:02
+flink_job=1099b41406c615898595bcc279deba2b
+topics=gamestream.g8r.ods.events / ads_dau / ads_pay_rate
+mat_group=gamestream-g8r-doris-materializer
+
+Doris ADS (dt=2026-09-07, server_id=1) via SELECT-only wait:
+  after_batch1_resident: dau=4 pay_users=1 pay_rate=0.25  (try=2, ~4s wall)
+  after_batch2_resident: dau=6 pay_users=2 pay_rate≈0.333  (try=1, ~3s wall)
+  during_kill_25s:       dau=6 pay_users=2  (unchanged — accept did NOT write)
+  after_restart_catchup: dau=8 pay_users=2 pay_rate=0.25  (try=1)
+  after_dup_produce:     dau=8 pay_users=2  (stable — no double-count)
+
+Materializer stats (first run before kill): applied_dau=6 applied_pay=6 commits=12 retries=0
+Restart catch-up applied offsets 6..7 on both topics → dau=8.
+
+PASS. Boundaries: at-least-once (commit after Doris write); UNIQUE KEY upsert; tombstone=DELETE; NOT EO-2PC; accept=produce+SELECT only.

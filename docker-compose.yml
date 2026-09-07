@@ -168,3 +168,34 @@ services:
         soft: 65535
         hard: 65535
     restart: unless-stopped
+
+  # Optional (~light) G8 resident Doris materializer.
+  # Start: docker compose --profile materializer up -d g8-doris-materializer
+  # Host-side alternative (preferred on ~7.6Gi): scripts/run_g8_resident_materializer.sh
+  g8-doris-materializer:
+    profiles: ["materializer"]
+    image: python:3.12-slim
+    container_name: gs-g8-doris-materializer
+    working_dir: /app
+    volumes:
+      - ./:/app:ro
+    environment:
+      G8_MAT_BOOTSTRAP: kafka:9092
+      G8_MAT_GROUP: gamestream-g8-doris-materializer
+      G8_MAT_TOPIC_DAU: gamestream.g8.ads_dau
+      G8_MAT_TOPIC_PAY: gamestream.g8.ads_pay_rate
+      G8_MAT_DORIS_HOST: doris-fe
+      G8_MAT_DORIS_PORT: "9030"
+      G8_MAT_DORIS_USER: root
+      G8_MAT_DORIS_PASSWORD: ""
+      G8_MAT_DORIS_DB: ads
+    command:
+      - bash
+      - -lc
+      - pip install -q kafka-python PyMySQL && python scripts/g8_resident_materializer.py
+    depends_on:
+      - kafka
+      - doris-fe
+    mem_limit: 256m
+    cpus: 0.25
+    restart: unless-stopped

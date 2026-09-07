@@ -4,8 +4,10 @@
 # Proves: continuous ADS updates + event_id dedup + TM kill restore on SAME job.
 # Contrast: G2 = batch bounded one-shot. G3–G5 drills folded into this pipeline.
 #
-# Sink honesty: Flink upsert-kafka (ALS+PK) continuously; Doris UNIQUE KEY via
-# plain INSERT materialize (Flink JDBC MySQL ON DUPLICATE KEY UPDATE rejected by Doris FE).
+# Sink honesty: Flink upsert-kafka (ALS+PK) continuously.
+# Doris UNIQUE KEY primary path = resident materializer (see g8_resident_materializer*).
+# This script's materialize_doris() is FALLBACK/DEV only (wait-for-expected-then-materialize).
+# Flink JDBC MySQL ON DUPLICATE KEY UPDATE rejected by Doris FE.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -128,6 +130,7 @@ PY
 }
 
 materialize_doris() {
+  # FALLBACK/DEV ONLY — primary path is resident materializer.
   # Read latest kafka ads and INSERT into Doris UNIQUE KEY tables
   local raw
   raw=$(read_kafka_ads)

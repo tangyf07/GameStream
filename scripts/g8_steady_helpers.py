@@ -111,6 +111,7 @@ def _read_kafka_ads(topic_dau: str, topic_pay: str, dt: str, server_id: int) -> 
 
 
 def materialize_doris(dt: str, server_id: int, topic_dau: str, topic_pay: str) -> str | None:
+    """FALLBACK/DEV ONLY. Primary continuous path: resident Doris materializer."""
     dau, pay, rate = _read_kafka_ads(topic_dau, topic_pay, dt, server_id)
     if dau is None or pay is None or rate is None:
         return None
@@ -161,7 +162,7 @@ def wait_doris_e2e(
     definition = (
         "Doris-query-visible E2E = host wallclock when Doris SELECT returns target dau/pay "
         "minus produce_wallclock_end of probe batch. Path: produce -> Flink upsert-kafka ADS "
-        "-> script UNIQUE KEY materialize -> Doris SELECT."
+        "-> script UNIQUE KEY materialize (fallback/dev) -> Doris SELECT. Primary continuous path: resident materializer."
     )
     for i in range(1, wait_sec + 1):
         kdau, kpay, _ = _read_kafka_ads(topic_dau, topic_pay, dt, server_id)
@@ -452,7 +453,7 @@ def assemble(env: dict[str, str]) -> dict[str, Any]:
         "raw_dir": str(raw),
         "sink_honesty": {
             "flink_continuous_sink": "upsert-kafka (ALS + PK)",
-            "doris_materialize": "plain INSERT on UNIQUE KEY (script)",
+            "doris_materialize": "plain INSERT on UNIQUE KEY (script fallback; primary=resident materializer)",
             "not": "EO-2PC / Flink JDBC MySQL ON DUPLICATE KEY UPDATE",
             "not_g6": "Do NOT reuse G6 Kafka-only sink_ts-produce_ts numbers as G8 Doris-visible E2E",
         },

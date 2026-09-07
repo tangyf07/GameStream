@@ -1,7 +1,7 @@
 # GameStream G8 — 小规模分块负载与批次可见性验证
 
 **Scope:** 在 **G8 单一持续 Flink 作业＋脚本阶段物化 Doris** 主线上，做**小规模分块负载与批次可见性验证**（非「稳态压测」口径）— throughput、Kafka consumer lag、checkpoint duration、**Doris-query-visible 批次探针**、backpressure。  
-**Not in scope:** metric zoo、编造 SLA、~7.6Gi 上 heavy tier、把 G6 Kafka-only E2E 标成 Doris-visible、常驻 Doris materializer 服务。
+**Not in scope:** metric zoo、编造 SLA、~7.6Gi 上 heavy tier、把 G6 Kafka-only E2E 标成 Doris-visible。常驻 materializer 见 [`g8-resident-materializer.md`](g8-resident-materializer.md)（本 bench 数字仍为**脚本物化**路径实测，勿与常驻路径混报）。
 
 **Honesty rule:** every number in the summary table comes from a committed result JSON under `bench/results/g8_{light,medium}_*.json` (or is explicitly `未测到` with reason). **Never invent.**
 
@@ -11,16 +11,17 @@
 |--|----|----------------|
 | Load shape | Burst produce then drain/stop | **分块持续 produce**（`duration_sec` × ≥2 rounds；小规模） |
 | Baseline | none required | **Sample lag/CP/BP before load starts** |
-| Sink path under test | Kafka out topic only | G8：**upsert-kafka → 脚本阶段 UNIQUE KEY 物化 → Doris ADS**（非常驻 writer） |
+| Sink path under test | Kafka out topic only | G8：**upsert-kafka → 脚本阶段 UNIQUE KEY 物化 → Doris ADS**（本 bench；常驻 writer 见专项） |
 | E2E definition | `sink_ts - produce_ts` (Kafka) | **produce_probe_end → Doris SELECT matches expected dau/pay** |
 | Numbers | `bench/results/g6_*.json` | `bench/results/g8_*.json` — **do not copy G6 into G8** |
 
 ## Sink honesty
 
 - Flink continuous sink = **upsert-kafka (ALS + PK)**
-- Doris ADS = **脚本阶段** **plain INSERT** on **UNIQUE KEY**（从最新 upsert-kafka ADS 物化；**不是**常驻 Doris writer）
+- Doris ADS（本 bench）= **脚本阶段** **plain INSERT** on **UNIQUE KEY**（历史对照 / fallback）
+- **Primary continuous path** = resident materializer（[`g8-resident-materializer.md`](g8-resident-materializer.md)）
 - Flink JDBC MySQL `ON DUPLICATE KEY UPDATE` rejected by Doris FE — not used
-- **NOT** end-to-end EO-2PC；**NO** permanent Doris materializer service
+- **NOT** end-to-end EO-2PC
 
 ## Environment
 
@@ -128,4 +129,4 @@ Raw: `bench/results/g8_raw_light_20260907T043148Z/`, `bench/results/g8_raw_mediu
 - Not a production capacity / SLA / 「稳态压测」number — 仅为小规模分块负载与批次可见性验证。
 - Not G6 Kafka-only E2E relabeled as Doris-visible.
 - Not end-to-end exactly-once into Doris (ALS + UNIQUE KEY only).
-- **No permanent Doris materializer service** — 脚本阶段物化 only.
+- 本结果 JSON 的 Doris 可见延迟 = **脚本物化**路径；常驻 materializer 另测另记。
