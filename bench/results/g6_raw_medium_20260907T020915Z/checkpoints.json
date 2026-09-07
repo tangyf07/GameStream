@@ -1,0 +1,26 @@
+{
+  "status": "ok",
+  "counts": {
+    "restored": 0,
+    "total": 6,
+    "in_progress": 0,
+    "completed": 6,
+    "failed": 0
+  },
+  "completed_in_history": 6,
+  "end_to_end_duration_ms_samples": [
+    14,
+    14,
+    19,
+    13,
+    13,
+    37
+  ],
+  "source": "GET http://127.0.0.1:8081/jobs/faacdef2b462d2cff748578c18fdb8dc/checkpoints → history[].end_to_end_duration",
+  "avg_ms": 18.33,
+  "p50_ms": 14,
+  "p95_ms": 37,
+  "min_ms": 13,
+  "max_ms": 37,
+  "n": 6
+}

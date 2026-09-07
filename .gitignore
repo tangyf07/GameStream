@@ -31,6 +31,9 @@ bench/results/**
 !bench/results/.gitkeep
 !bench/results/*.md
 !bench/results/bench_*.json
+!bench/results/g6_*.json
+!bench/results/g6_raw_*/
+!bench/results/g6_raw_*/**
 
 # IDE / OS
 .idea/

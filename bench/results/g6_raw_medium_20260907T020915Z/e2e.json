@@ -1,0 +1,15 @@
+{
+  "status": "ok",
+  "definition": "E2E_ms = sink_ts - produce_ts; produce_ts=host publish wallclock; sink_ts=Flink CURRENT_TIMESTAMP at sink projection",
+  "n": 30000,
+  "rows_seen": 30000,
+  "parse_errors": 0,
+  "avg_ms": 3645.533,
+  "p50_ms": 3803.0,
+  "p95_ms": 4387.0,
+  "p99_ms": 4476.0,
+  "min_ms": 2456.0,
+  "max_ms": 4477.0,
+  "negative_count": 0,
+  "note": "negative latency possible if container clocks skew vs host produce_ts"
+}

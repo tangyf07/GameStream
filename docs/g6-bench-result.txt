@@ -1,0 +1,19 @@
+G6 bench measured summary (UTC+8 display note: timestamps in JSON are UTC)
+
+Primary light: bench/results/g6_light_20260907T020703Z.json
+  input_eps=3094.347
+  lag_after_drain=lag=0 (current=10000/10000)
+  checkpoint=n=5 avg=32.2ms p50=18ms p95=92ms
+  e2e=n=10000 p95=2930.0ms p50=2679.0ms avg=2654.061ms
+  backpressure=observed=False level=['ok'] ratio_max=0.0
+  flink_rate=未测到
+
+Primary medium: bench/results/g6_medium_20260907T020915Z.json
+  input_eps=6088.651
+  lag_after_drain=lag=0 (current=30000/30000)
+  checkpoint=n=6 avg=18.33ms p50=14ms p95=37ms
+  e2e=n=30000 p95=4387.0ms p50=3803.0ms avg=3645.533ms
+  backpressure=observed=False level=['ok'] ratio_max=0.0
+  flink_rate=未测到
+
+Earlier light: bench/results/g6_light_20260907T020246Z.json (also committed)

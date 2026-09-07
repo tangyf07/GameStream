@@ -1,0 +1,1 @@
+{"events": 30000, "write_wall_sec": 0.2664, "write_events_per_sec": 112618.819, "wall_start_utc_naive": "2026-09-07 02:09:50.260", "wall_end_utc_naive": "2026-09-07 02:09:50.527", "out": "/tmp/gamestream_g6_events.jsonl", "stamp_produce_ts": true, "rate_target": null}

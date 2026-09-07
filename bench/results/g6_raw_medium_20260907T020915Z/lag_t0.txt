@@ -1,0 +1,6 @@
+=== lag t0_after_produce 2026-09-07T02:09:55Z ===
+
+Consumer group 'gamestream-g6-bench-v1' has no active members.
+
+GROUP                  TOPIC                PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG             CONSUMER-ID     HOST            CLIENT-ID
+gamestream-g6-bench-v1 gamestream.g6.events 0          4969            30000           25031           -               -               -

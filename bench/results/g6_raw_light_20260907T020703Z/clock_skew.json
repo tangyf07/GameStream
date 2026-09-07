@@ -1,0 +1,10 @@
+{
+  "host_utc": "2026-09-07T02:09:15Z",
+  "flink_jm_utc": "2026-09-07T02:09:15Z",
+  "flink_tm_utc": "2026-09-07T02:09:15Z",
+  "kafka_utc": "2026-09-07T02:09:15Z",
+  "skew_jm_minus_host_sec": 0.0,
+  "skew_tm_minus_host_sec": 0.0,
+  "skew_kafka_minus_host_sec": 0.0,
+  "note": "E2E uses host produce_ts vs Flink CURRENT_TIMESTAMP; large skew invalidates absolute latency"
+}

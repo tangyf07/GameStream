@@ -1,0 +1,163 @@
+{
+  "schema": "gamestream.g6.bench.v1",
+  "timestamp_utc": "20260907T020915Z",
+  "tier": "medium",
+  "host": "tangyf",
+  "mem_note": "total=7.6Gi used=4.6Gi available=3.0Gi",
+  "job_id": "faacdef2b462d2cff748578c18fdb8dc",
+  "group_id": "gamestream-g6-bench-v1",
+  "topic_in": "gamestream.g6.events",
+  "topic_out": "gamestream.g6.out",
+  "sink_path": "Kafka only (Doris skipped for G6 measured bench; Alive=true)",
+  "raw_dir": "/mnt/c/Users/tangy/source/repos/GameStream/bench/results/g6_raw_medium_20260907T020915Z",
+  "definitions": {
+    "throughput_input": "events / produce_wall_sec (console-producer wall clock)",
+    "throughput_flink": "Flink REST job metrics numRecordsInPerSecond (sampled)",
+    "kafka_lag": "kafka-consumer-groups.sh --describe --group for Flink source group",
+    "checkpoint_duration": "Flink REST /jobs/:id/checkpoints history[].end_to_end_duration (ms)",
+    "e2e_p95": "P95(sink_ts - produce_ts); produce_ts stamped at JSONL write immediately before produce; sink_ts=Flink CURRENT_TIMESTAMP at sink SELECT",
+    "backpressure": "Flink metric backPressuredTimeMsPerSecond and/or vertices/:id/backpressure"
+  },
+  "metrics": {
+    "throughput": {
+      "definition": "primary: Flink numRecordsInPerSecond samples during poll; secondary: events/produce_wall_sec is INPUT produce rate only",
+      "input_produce_events_per_sec": 6088.651,
+      "input_produce_wall_sec": 4.9272,
+      "events": 30000,
+      "flink_numRecordsInPerSecond": {
+        "status": "未测到",
+        "max": null,
+        "avg": null,
+        "samples": [],
+        "reason": "metric unavailable or always zero",
+        "note": "Job-level and poll samples empty/zero after batch already drained; input produce rate remains the measured throughput figure for this run"
+      },
+      "sink_lines_consumed": 30000,
+      "drain_reached_target": true
+    },
+    "kafka_consumer_lag": {
+      "t0_after_produce": [
+        {
+          "topic": "gamestream.g6.events",
+          "partition": 0,
+          "current_offset": 4969,
+          "log_end_offset": 30000,
+          "lag": 25031
+        }
+      ],
+      "t1_after_drain": [
+        {
+          "topic": "gamestream.g6.events",
+          "partition": 0,
+          "current_offset": 30000,
+          "log_end_offset": 30000,
+          "lag": 0
+        }
+      ],
+      "source": "kafka-consumer-groups.sh --describe --group",
+      "status": "ok"
+    },
+    "checkpoint_duration": {
+      "status": "ok",
+      "counts": {
+        "restored": 0,
+        "total": 6,
+        "in_progress": 0,
+        "completed": 6,
+        "failed": 0
+      },
+      "completed_in_history": 6,
+      "end_to_end_duration_ms_samples": [
+        14,
+        14,
+        19,
+        13,
+        13,
+        37
+      ],
+      "source": "GET http://127.0.0.1:8081/jobs/faacdef2b462d2cff748578c18fdb8dc/checkpoints → history[].end_to_end_duration",
+      "avg_ms": 18.33,
+      "p50_ms": 14,
+      "p95_ms": 37,
+      "min_ms": 13,
+      "max_ms": 37,
+      "n": 6
+    },
+    "e2e_latency": {
+      "status": "ok",
+      "definition": "E2E_ms = sink_ts - produce_ts; produce_ts=host publish wallclock; sink_ts=Flink CURRENT_TIMESTAMP at sink projection",
+      "n": 30000,
+      "rows_seen": 30000,
+      "parse_errors": 0,
+      "avg_ms": 3645.533,
+      "p50_ms": 3803.0,
+      "p95_ms": 4387.0,
+      "p99_ms": 4476.0,
+      "min_ms": 2456.0,
+      "max_ms": 4477.0,
+      "negative_count": 0,
+      "note": "negative latency possible if container clocks skew vs host produce_ts"
+    },
+    "backpressure": {
+      "status": "ok",
+      "observed": false,
+      "backpressureLevel_samples": [
+        "ok"
+      ],
+      "subtask_ratio_samples": [
+        0.0
+      ],
+      "max_subtask_ratio": 0.0,
+      "source": "GET /jobs/:id/vertices/:vid/backpressure",
+      "vertices_backpressure_endpoint": {
+        "status": "ok",
+        "vertices": [
+          {
+            "vertex_id": "cbc357ccb763df2852fee8c4fc7d55f2",
+            "name": "Source: kafka_g6_in[1] -> Calc[2] -> StreamRecordTimestampInserter[3] -> kafka_g6_out[3]: Writer -> kafka_g6_out[3]: Committer",
+            "backpressure": {
+              "status": "ok",
+              "backpressureLevel": "ok",
+              "end-timestamp": 1788747052206,
+              "subtasks": [
+                {
+                  "subtask": 0,
+                  "backpressureLevel": "ok",
+                  "ratio": 0.0,
+                  "idleRatio": 1.0,
+                  "busyRatio": 0.0,
+                  "backpressure-level": "ok"
+                }
+              ],
+              "backpressure-level": "ok"
+            }
+          }
+        ],
+        "source": "GET /jobs/:id/vertices/:vid/backpressure"
+      },
+      "note": "Post-assembled from same-run raw vertices_bp.json; job-level backPressuredTimeMsPerSecond was 未测到",
+      "job_level_backPressuredTimeMsPerSecond": "未测到 — no matching metric ids on /jobs/:id/metrics during poll"
+    }
+  },
+  "gen_meta": {
+    "events": 30000,
+    "write_wall_sec": 0.2664,
+    "write_events_per_sec": 112618.819,
+    "wall_start_utc_naive": "2026-09-07 02:09:50.260",
+    "wall_end_utc_naive": "2026-09-07 02:09:50.527",
+    "out": "/tmp/gamestream_g6_events.jsonl",
+    "stamp_produce_ts": true,
+    "rate_target": null
+  },
+  "clock_skew": {
+    "host_utc": "2026-09-07T02:11:37Z",
+    "flink_jm_utc": "2026-09-07T02:11:38Z",
+    "flink_tm_utc": "2026-09-07T02:11:38Z",
+    "kafka_utc": "2026-09-07T02:11:38Z",
+    "skew_jm_minus_host_sec": 1.0,
+    "skew_tm_minus_host_sec": 1.0,
+    "skew_kafka_minus_host_sec": 1.0,
+    "note": "E2E uses host produce_ts vs Flink CURRENT_TIMESTAMP; large skew invalidates absolute latency"
+  },
+  "honesty": "Numbers below are copied from raw sampler outputs. Missing fields use 未测到 with reason — never fabricated."
+}

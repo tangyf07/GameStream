@@ -1,0 +1,1 @@
+{"t0_after_produce": [], "t1_after_drain": [{"topic": "gamestream.g6.events", "partition": 0, "current_offset": 10000, "log_end_offset": 10000, "lag": 0}], "source": "kafka-consumer-groups.sh --describe --group", "status": "ok"}

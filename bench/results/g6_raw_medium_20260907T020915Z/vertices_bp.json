@@ -1,0 +1,26 @@
+{
+  "status": "ok",
+  "vertices": [
+    {
+      "vertex_id": "cbc357ccb763df2852fee8c4fc7d55f2",
+      "name": "Source: kafka_g6_in[1] -> Calc[2] -> StreamRecordTimestampInserter[3] -> kafka_g6_out[3]: Writer -> kafka_g6_out[3]: Committer",
+      "backpressure": {
+        "status": "ok",
+        "backpressureLevel": "ok",
+        "end-timestamp": 1788747052206,
+        "subtasks": [
+          {
+            "subtask": 0,
+            "backpressureLevel": "ok",
+            "ratio": 0.0,
+            "idleRatio": 1.0,
+            "busyRatio": 0.0,
+            "backpressure-level": "ok"
+          }
+        ],
+        "backpressure-level": "ok"
+      }
+    }
+  ],
+  "source": "GET /jobs/:id/vertices/:vid/backpressure"
+}

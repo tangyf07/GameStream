@@ -1,0 +1,43 @@
+{
+  "poll_file": "/mnt/c/Users/tangy/source/repos/GameStream/bench/results/g6_raw_light_20260907T020703Z/poll.json",
+  "n_samples": 23,
+  "flink_in_rate_per_s": {
+    "status": "未测到",
+    "max": null,
+    "avg": null,
+    "samples": [],
+    "reason": "metric unavailable or always zero"
+  },
+  "backpressure": {
+    "status": "未测到",
+    "max_backPressuredTimeMsPerSecond": null,
+    "observed": null,
+    "samples": [],
+    "reason": "metric unavailable"
+  },
+  "checkpoints_final": {
+    "status": "ok",
+    "counts": {
+      "restored": 0,
+      "total": 5,
+      "in_progress": 0,
+      "completed": 5,
+      "failed": 0
+    },
+    "completed_in_history": 5,
+    "end_to_end_duration_ms_samples": [
+      18,
+      23,
+      15,
+      13,
+      92
+    ],
+    "source": "GET http://127.0.0.1:8081/jobs/e9e6fdefa1545e540972d2c98595563f/checkpoints → history[].end_to_end_duration",
+    "avg_ms": 32.2,
+    "p50_ms": 18,
+    "p95_ms": 92,
+    "min_ms": 13,
+    "max_ms": 92,
+    "n": 5
+  }
+}
