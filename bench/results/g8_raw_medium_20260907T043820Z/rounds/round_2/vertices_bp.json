@@ -1,0 +1,106 @@
+{
+  "status": "ok",
+  "vertices": [
+    {
+      "vertex_id": "e3dfc0d7e9ecd8a43f85f0b68ebf3b80",
+      "name": "Source: kafka_g8_ods[1] -> (Calc[2], Calc[10])",
+      "backpressure": {
+        "status": "ok",
+        "backpressureLevel": "ok",
+        "end-timestamp": 1788756366920,
+        "subtasks": [
+          {
+            "subtask": 0,
+            "backpressureLevel": "ok",
+            "ratio": 0.0,
+            "idleRatio": 1.0,
+            "busyRatio": 0.0,
+            "backpressure-level": "ok"
+          }
+        ],
+        "backpressure-level": "ok"
+      }
+    },
+    {
+      "vertex_id": "20b81e6244c17841eed51aec83fb46b4",
+      "name": "Deduplicate[4] -> Calc[5]",
+      "backpressure": {
+        "status": "ok",
+        "backpressureLevel": "ok",
+        "end-timestamp": 1788756366920,
+        "subtasks": [
+          {
+            "subtask": 0,
+            "backpressureLevel": "ok",
+            "ratio": 0.0,
+            "idleRatio": 1.0,
+            "busyRatio": 0.0,
+            "backpressure-level": "ok"
+          }
+        ],
+        "backpressure-level": "ok"
+      }
+    },
+    {
+      "vertex_id": "2e9f9f111b6ebec8ef3258160a6860b0",
+      "name": "GroupAggregate[7] -> Calc[8] -> ConstraintEnforcer[9] -> kafka_g8_ads_dau[9]: Writer -> kafka_g8_ads_dau[9]: Committer",
+      "backpressure": {
+        "status": "ok",
+        "backpressureLevel": "ok",
+        "end-timestamp": 1788756366920,
+        "subtasks": [
+          {
+            "subtask": 0,
+            "backpressureLevel": "ok",
+            "ratio": 0.0,
+            "idleRatio": 1.0,
+            "busyRatio": 0.0,
+            "backpressure-level": "ok"
+          }
+        ],
+        "backpressure-level": "ok"
+      }
+    },
+    {
+      "vertex_id": "c82105323f1a61713019c6d1da10336c",
+      "name": "Deduplicate[12] -> Calc[13]",
+      "backpressure": {
+        "status": "ok",
+        "backpressureLevel": "ok",
+        "end-timestamp": 1788756366920,
+        "subtasks": [
+          {
+            "subtask": 0,
+            "backpressureLevel": "ok",
+            "ratio": 0.0,
+            "idleRatio": 1.0,
+            "busyRatio": 0.0,
+            "backpressure-level": "ok"
+          }
+        ],
+        "backpressure-level": "ok"
+      }
+    },
+    {
+      "vertex_id": "26ceb2dbbc51c310b538c3c24f51b7fb",
+      "name": "GroupAggregate[15] -> Calc[16] -> ConstraintEnforcer[17] -> kafka_g8_ads_pay_rate[17]: Writer -> kafka_g8_ads_pay_rate[17]: Committer",
+      "backpressure": {
+        "status": "ok",
+        "backpressureLevel": "ok",
+        "end-timestamp": 1788756366920,
+        "subtasks": [
+          {
+            "subtask": 0,
+            "backpressureLevel": "ok",
+            "ratio": 0.0,
+            "idleRatio": 1.0,
+            "busyRatio": 0.0,
+            "backpressure-level": "ok"
+          }
+        ],
+        "backpressure-level": "ok"
+      }
+    }
+  ],
+  "source": "GET /jobs/:id/vertices/:vid/backpressure"
+}

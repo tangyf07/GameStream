@@ -1,0 +1,3 @@
+=== lag baseline_before_load 2026-09-07T04:39:16Z ===
+
+Error: Consumer group 'gamestream-g8-steady-v1' does not exist.

@@ -1,0 +1,3 @@
+=== lag round1_before_continuous 2026-09-07T04:33:19Z ===
+
+Error: Consumer group 'gamestream-g8-steady-v1' does not exist.

@@ -1,0 +1,64 @@
+{
+  "throughput_bp": {
+    "metric_ids_sampled": [],
+    "values": {},
+    "numRecordsInPerSecond_samples": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "numRecordsInPerSecond_max": 0.0,
+    "numRecordsInPerSecond_sum": 0.0,
+    "backPressuredTimeMsPerSecond_samples": [
+      0.0
+    ],
+    "backPressuredTimeMsPerSecond_max": 0.0,
+    "backpressure_observed": false,
+    "status": "ok",
+    "reason": null,
+    "source": "GET http://127.0.0.1:8081/jobs/ea9030ec88dd2448dbc8aca62f67a5c4/vertices/:vid/metrics",
+    "vertex_fallback": {
+      "status": "ok",
+      "reason": null,
+      "source": "GET http://127.0.0.1:8081/jobs/ea9030ec88dd2448dbc8aca62f67a5c4/vertices/:vid/metrics",
+      "numRecordsInPerSecond_max": 0.0,
+      "numRecordsInPerSecond_sum": 0.0,
+      "numRecordsInPerSecond_samples": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "backPressuredTimeMsPerSecond_max": 0.0,
+      "backpressure_observed": false,
+      "backPressuredTimeMsPerSecond_samples": [
+        0.0
+      ]
+    }
+  },
+  "checkpoints": {
+    "status": "未测到",
+    "counts": {
+      "restored": 0,
+      "total": 0,
+      "in_progress": 0,
+      "completed": 0,
+      "failed": 0
+    },
+    "completed_in_history": 0,
+    "end_to_end_duration_ms_samples": [],
+    "source": "GET http://127.0.0.1:8081/jobs/ea9030ec88dd2448dbc8aca62f67a5c4/checkpoints → history[].end_to_end_duration",
+    "reason": "no COMPLETED checkpoints with duration in history yet",
+    "latest_keys": [
+      "completed",
+      "savepoint",
+      "failed",
+      "restored"
+    ]
+  }
+}

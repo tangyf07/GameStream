@@ -1,0 +1,12 @@
+{
+  "host_utc": "2026-09-07T04:38:14Z",
+  "flink_jm_utc": "2026-09-07T04:38:14Z",
+  "flink_tm_utc": "2026-09-07T04:38:14Z",
+  "kafka_utc": "2026-09-07T04:38:14Z",
+  "doris_fe_utc": "2026-09-07T04:38:14Z",
+  "skew_jm_minus_host_sec": 0.0,
+  "skew_tm_minus_host_sec": 0.0,
+  "skew_kafka_minus_host_sec": 0.0,
+  "skew_doris_minus_host_sec": 0.0,
+  "note": "Doris-visible E2E uses host wallclock for both produce_end and Doris SELECT success — same host, no cross-clock subtraction"
+}

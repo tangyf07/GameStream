@@ -1,0 +1,21 @@
+G8 steady-state bench — measured on WSL 2026-09-07 (Asia/Shanghai ~12:31–12:46)
+light:  bench/results/g8_light_20260907T043148Z.json
+medium: bench/results/g8_medium_20260907T043820Z.json
+
+LIGHT  job=6c609ba1c85fb6c2f64947bbb28887a2  rounds=2  rate=30  duration=30s
+throughput.input_eps=11.097 total_events=1844 wall_sec=166.165
+throughput.flink_in_rate: status=ok max=161.7 avg=58.693
+kafka_lag: baseline=未测到(group absent) final=lag=0 (1844/1844)
+checkpoint: status=ok n=10 avg_ms=22.7 p50_ms=22 p95_ms=32
+doris_e2e: status=ok n_ok=2 p95_ms=39499.58 p50_ms=39368.485 avg_ms=39434.033 samples=[39499.58, 39368.485]
+backpressure: status=ok observed=False max_ratio=0.0
+
+MEDIUM job=ea9030ec88dd2448dbc8aca62f67a5c4  rounds=2  rate=50  duration=40s
+throughput.input_eps=17.914 total_events=4088 wall_sec=228.2069
+throughput.flink_in_rate: status=ok max=316.867 avg=121.699
+kafka_lag: baseline=未测到(group absent) final=lag=0 (4088/4088)
+checkpoint: status=ok n=10 avg_ms=32.9 p50_ms=34 p95_ms=38
+doris_e2e: status=ok n_ok=2 p95_ms=40572.177 p50_ms=39948.4 avg_ms=40260.289 samples=[39948.4, 40572.177]
+backpressure: status=ok observed=False max_ratio=0.0
+
+Sink honesty: Flink upsert-kafka ALS+PK; Doris UNIQUE KEY materialize; NOT EO-2PC; NOT G6 Kafka-only E2E.

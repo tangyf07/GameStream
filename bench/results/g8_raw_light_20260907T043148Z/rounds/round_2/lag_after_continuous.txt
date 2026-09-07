@@ -1,0 +1,6 @@
+=== lag round2_after_continuous 2026-09-07T04:37:23Z ===
+
+Consumer group 'gamestream-g8-steady-v1' has no active members.
+
+GROUP                   TOPIC                     PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG             CONSUMER-ID     HOST            CLIENT-ID
+gamestream-g8-steady-v1 gamestream.g8s.ods.events 0          1732            1822            90              -               -               -

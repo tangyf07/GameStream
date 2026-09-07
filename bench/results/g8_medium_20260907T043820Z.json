@@ -1,0 +1,675 @@
+{
+  "schema": "gamestream.g8.steady_bench.v1",
+  "timestamp_utc": "20260907T043820Z",
+  "tier": "medium",
+  "host": "tangyf",
+  "mem_note": "total=7.6Gi used=4.8Gi available=2.8Gi",
+  "job_id": "ea9030ec88dd2448dbc8aca62f67a5c4",
+  "group_id": "gamestream-g8-steady-v1",
+  "topic_in": "gamestream.g8s.ods.events",
+  "topics_ads": [
+    "gamestream.g8s.ads_dau",
+    "gamestream.g8s.ads_pay_rate"
+  ],
+  "dt": "2026-09-07",
+  "server_id": 88,
+  "rounds": 2,
+  "rate_target_eps": 50.0,
+  "duration_sec_per_round": 40.0,
+  "doris_alive": "true",
+  "raw_dir": "/mnt/c/Users/tangy/source/repos/GameStream/bench/results/g8_raw_medium_20260907T043820Z",
+  "sink_honesty": {
+    "flink_continuous_sink": "upsert-kafka (ALS + PK)",
+    "doris_materialize": "plain INSERT on UNIQUE KEY (script)",
+    "not": "EO-2PC / Flink JDBC MySQL ON DUPLICATE KEY UPDATE",
+    "not_g6": "Do NOT reuse G6 Kafka-only sink_ts-produce_ts numbers as G8 Doris-visible E2E"
+  },
+  "definitions": {
+    "baseline": "Kafka lag + Flink sample-once + checkpoints + vertices backpressure BEFORE continuous load starts",
+    "throughput_input": "total produced events / total produce wall seconds across continuous chunked produce + probes",
+    "throughput_flink": "Flink REST numRecordsInPerSecond sampled during continuous-load poll windows",
+    "kafka_lag": "kafka-consumer-groups.sh --describe --group for Flink source group (baseline + per-round + final)",
+    "checkpoint_duration": "Flink REST /jobs/:id/checkpoints history[].end_to_end_duration (ms)",
+    "doris_e2e_p95": "P95 of per-round Doris-query-visible latency: produce_probe_end -> Doris SELECT matches expected dau/pay",
+    "backpressure": "Flink backPressuredTimeMsPerSecond and/or vertices/:id/backpressure during/after load"
+  },
+  "baseline_before_load": {
+    "sample_once": {
+      "throughput_bp": {
+        "metric_ids_sampled": [],
+        "values": {},
+        "numRecordsInPerSecond_samples": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "numRecordsInPerSecond_max": 0.0,
+        "numRecordsInPerSecond_sum": 0.0,
+        "backPressuredTimeMsPerSecond_samples": [
+          0.0
+        ],
+        "backPressuredTimeMsPerSecond_max": 0.0,
+        "backpressure_observed": false,
+        "status": "ok",
+        "reason": null,
+        "source": "GET http://127.0.0.1:8081/jobs/ea9030ec88dd2448dbc8aca62f67a5c4/vertices/:vid/metrics",
+        "vertex_fallback": {
+          "status": "ok",
+          "reason": null,
+          "source": "GET http://127.0.0.1:8081/jobs/ea9030ec88dd2448dbc8aca62f67a5c4/vertices/:vid/metrics",
+          "numRecordsInPerSecond_max": 0.0,
+          "numRecordsInPerSecond_sum": 0.0,
+          "numRecordsInPerSecond_samples": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "backPressuredTimeMsPerSecond_max": 0.0,
+          "backpressure_observed": false,
+          "backPressuredTimeMsPerSecond_samples": [
+            0.0
+          ]
+        }
+      },
+      "checkpoints": {
+        "status": "未测到",
+        "counts": {
+          "restored": 0,
+          "total": 0,
+          "in_progress": 0,
+          "completed": 0,
+          "failed": 0
+        },
+        "completed_in_history": 0,
+        "end_to_end_duration_ms_samples": [],
+        "source": "GET http://127.0.0.1:8081/jobs/ea9030ec88dd2448dbc8aca62f67a5c4/checkpoints → history[].end_to_end_duration",
+        "reason": "no COMPLETED checkpoints with duration in history yet",
+        "latest_keys": [
+          "completed",
+          "savepoint",
+          "failed",
+          "restored"
+        ]
+      }
+    },
+    "checkpoints": {
+      "status": "未测到",
+      "counts": {
+        "restored": 0,
+        "total": 0,
+        "in_progress": 0,
+        "completed": 0,
+        "failed": 0
+      },
+      "completed_in_history": 0,
+      "end_to_end_duration_ms_samples": [],
+      "source": "GET http://127.0.0.1:8081/jobs/ea9030ec88dd2448dbc8aca62f67a5c4/checkpoints → history[].end_to_end_duration",
+      "reason": "no COMPLETED checkpoints with duration in history yet",
+      "latest_keys": [
+        "completed",
+        "savepoint",
+        "failed",
+        "restored"
+      ]
+    },
+    "lag": []
+  },
+  "metrics": {
+    "throughput": {
+      "definition": "continuous chunked produce + probes; input_eps = total_events/total_produce_wall_sec",
+      "total_events": 4088,
+      "total_produce_wall_sec": 228.2069,
+      "input_produce_events_per_sec": 17.914,
+      "flink_numRecordsInPerSecond": {
+        "status": "ok",
+        "max": 316.867,
+        "avg": 121.699,
+        "samples": [
+          0.133,
+          0.133,
+          0.133,
+          0.133,
+          8.483,
+          31.833,
+          31.833,
+          31.833,
+          56.85,
+          126.867,
+          126.867,
+          126.867,
+          153.533,
+          190.2,
+          190.2,
+          190.2,
+          222.7,
+          237.7,
+          237.7,
+          237.7,
+          316.867,
+          316.867,
+          54.1,
+          0.2,
+          0.2,
+          0.2,
+          13.533,
+          31.867,
+          31.867,
+          31.867,
+          75.2,
+          95.2,
+          95.2,
+          95.2,
+          127.7,
+          142.7,
+          142.7,
+          142.7,
+          182.7,
+          237.7,
+          237.7,
+          237.7,
+          257.7,
+          285.2
+        ],
+        "reason": null
+      },
+      "rate_target_eps": 50.0,
+      "duration_sec_per_round": 40.0,
+      "rounds": 2
+    },
+    "kafka_consumer_lag": {
+      "status": "ok",
+      "baseline_before_load": [],
+      "final": [
+        {
+          "topic": "gamestream.g8s.ods.events",
+          "partition": 0,
+          "current_offset": 4088,
+          "log_end_offset": 4088,
+          "lag": 0
+        }
+      ],
+      "by_label": {
+        "lag_baseline": [],
+        "lag_final": [
+          {
+            "topic": "gamestream.g8s.ods.events",
+            "partition": 0,
+            "current_offset": 4088,
+            "log_end_offset": 4088,
+            "lag": 0
+          }
+        ],
+        "round_1_lag_after_continuous": [
+          {
+            "topic": "gamestream.g8s.ods.events",
+            "partition": 0,
+            "current_offset": 1800,
+            "log_end_offset": 2000,
+            "lag": 200
+          }
+        ],
+        "round_1_lag_after_probe": [
+          {
+            "topic": "gamestream.g8s.ods.events",
+            "partition": 0,
+            "current_offset": 2044,
+            "log_end_offset": 2044,
+            "lag": 0
+          }
+        ],
+        "round_1_lag_before": [],
+        "round_2_lag_after_continuous": [
+          {
+            "topic": "gamestream.g8s.ods.events",
+            "partition": 0,
+            "current_offset": 3894,
+            "log_end_offset": 4044,
+            "lag": 150
+          }
+        ],
+        "round_2_lag_after_probe": [
+          {
+            "topic": "gamestream.g8s.ods.events",
+            "partition": 0,
+            "current_offset": 4088,
+            "log_end_offset": 4088,
+            "lag": 0
+          }
+        ],
+        "round_2_lag_before": [
+          {
+            "topic": "gamestream.g8s.ods.events",
+            "partition": 0,
+            "current_offset": 2044,
+            "log_end_offset": 2044,
+            "lag": 0
+          }
+        ]
+      },
+      "source": "kafka-consumer-groups.sh --describe --group"
+    },
+    "checkpoint_duration": {
+      "status": "ok",
+      "counts": {
+        "restored": 0,
+        "total": 41,
+        "in_progress": 0,
+        "completed": 41,
+        "failed": 0
+      },
+      "completed_in_history": 10,
+      "end_to_end_duration_ms_samples": [
+        32,
+        34,
+        34,
+        37,
+        38,
+        32,
+        28,
+        30,
+        36,
+        28
+      ],
+      "source": "GET http://127.0.0.1:8081/jobs/ea9030ec88dd2448dbc8aca62f67a5c4/checkpoints → history[].end_to_end_duration",
+      "avg_ms": 32.9,
+      "p50_ms": 34,
+      "p95_ms": 38,
+      "min_ms": 28,
+      "max_ms": 38,
+      "n": 10
+    },
+    "doris_e2e_latency": {
+      "definition": "Doris-query-visible E2E: host wallclock from probe produce_end -> Doris SELECT returns expected dau/pay after upsert-kafka + UNIQUE KEY materialize. NOT G6 Kafka sink_ts-produce_ts.",
+      "status": "ok",
+      "n_ok": 2,
+      "n_rounds": 2,
+      "samples_ms": [
+        39948.4,
+        40572.177
+      ],
+      "avg_ms": 40260.289,
+      "p50_ms": 39948.4,
+      "p95_ms": 40572.177,
+      "min_ms": 39948.4,
+      "max_ms": 40572.177,
+      "per_round": [
+        {
+          "status": "ok",
+          "definition": "Doris-query-visible E2E = host wallclock when Doris SELECT returns target dau/pay minus produce_wallclock_end of probe batch. Path: produce -> Flink upsert-kafka ADS -> script UNIQUE KEY materialize -> Doris SELECT.",
+          "produce_epoch": 1788756118.3586235,
+          "doris_visible_epoch": 1788756158.3070233,
+          "e2e_latency_ms": 39948.4,
+          "poll_wait_ms": 39818.776,
+          "want_dau": 290,
+          "want_pay_users": 4,
+          "doris_row": "290 4 0.013793103448275862",
+          "tries": 1,
+          "sink_honesty": "Flink continuous sink=upsert-kafka ALS+PK; Doris=plain INSERT UNIQUE KEY materialize; NOT EO-2PC"
+        },
+        {
+          "status": "ok",
+          "definition": "Doris-query-visible E2E = host wallclock when Doris SELECT returns target dau/pay minus produce_wallclock_end of probe batch. Path: produce -> Flink upsert-kafka ADS -> script UNIQUE KEY materialize -> Doris SELECT.",
+          "produce_epoch": 1788756323.5328102,
+          "doris_visible_epoch": 1788756364.104987,
+          "e2e_latency_ms": 40572.177,
+          "poll_wait_ms": 40443.987,
+          "want_dau": 330,
+          "want_pay_users": 8,
+          "doris_row": "330 8 0.024242424242424242",
+          "tries": 1,
+          "sink_honesty": "Flink continuous sink=upsert-kafka ALS+PK; Doris=plain INSERT UNIQUE KEY materialize; NOT EO-2PC"
+        }
+      ]
+    },
+    "backpressure": {
+      "status": "ok",
+      "observed": false,
+      "backpressureLevel_samples": [
+        "ok",
+        "ok",
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "subtask_ratio_samples": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "max_subtask_ratio": 0.0,
+      "max_backPressuredTimeMsPerSecond": 0.0,
+      "source": "GET /jobs/:id/vertices/:vid/backpressure",
+      "vertices_backpressure_endpoint": {
+        "status": "ok",
+        "vertices": [
+          {
+            "vertex_id": "e3dfc0d7e9ecd8a43f85f0b68ebf3b80",
+            "name": "Source: kafka_g8_ods[1] -> (Calc[2], Calc[10])",
+            "backpressure": {
+              "status": "ok",
+              "backpressureLevel": "ok",
+              "end-timestamp": 1788756366920,
+              "subtasks": [
+                {
+                  "subtask": 0,
+                  "backpressureLevel": "ok",
+                  "ratio": 0.0,
+                  "idleRatio": 1.0,
+                  "busyRatio": 0.0,
+                  "backpressure-level": "ok"
+                }
+              ],
+              "backpressure-level": "ok"
+            }
+          },
+          {
+            "vertex_id": "20b81e6244c17841eed51aec83fb46b4",
+            "name": "Deduplicate[4] -> Calc[5]",
+            "backpressure": {
+              "status": "ok",
+              "backpressureLevel": "ok",
+              "end-timestamp": 1788756366920,
+              "subtasks": [
+                {
+                  "subtask": 0,
+                  "backpressureLevel": "ok",
+                  "ratio": 0.0,
+                  "idleRatio": 1.0,
+                  "busyRatio": 0.0,
+                  "backpressure-level": "ok"
+                }
+              ],
+              "backpressure-level": "ok"
+            }
+          },
+          {
+            "vertex_id": "2e9f9f111b6ebec8ef3258160a6860b0",
+            "name": "GroupAggregate[7] -> Calc[8] -> ConstraintEnforcer[9] -> kafka_g8_ads_dau[9]: Writer -> kafka_g8_ads_dau[9]: Committer",
+            "backpressure": {
+              "status": "ok",
+              "backpressureLevel": "ok",
+              "end-timestamp": 1788756366920,
+              "subtasks": [
+                {
+                  "subtask": 0,
+                  "backpressureLevel": "ok",
+                  "ratio": 0.0,
+                  "idleRatio": 1.0,
+                  "busyRatio": 0.0,
+                  "backpressure-level": "ok"
+                }
+              ],
+              "backpressure-level": "ok"
+            }
+          },
+          {
+            "vertex_id": "c82105323f1a61713019c6d1da10336c",
+            "name": "Deduplicate[12] -> Calc[13]",
+            "backpressure": {
+              "status": "ok",
+              "backpressureLevel": "ok",
+              "end-timestamp": 1788756366920,
+              "subtasks": [
+                {
+                  "subtask": 0,
+                  "backpressureLevel": "ok",
+                  "ratio": 0.0,
+                  "idleRatio": 1.0,
+                  "busyRatio": 0.0,
+                  "backpressure-level": "ok"
+                }
+              ],
+              "backpressure-level": "ok"
+            }
+          },
+          {
+            "vertex_id": "26ceb2dbbc51c310b538c3c24f51b7fb",
+            "name": "GroupAggregate[15] -> Calc[16] -> ConstraintEnforcer[17] -> kafka_g8_ads_pay_rate[17]: Writer -> kafka_g8_ads_pay_rate[17]: Committer",
+            "backpressure": {
+              "status": "ok",
+              "backpressureLevel": "ok",
+              "end-timestamp": 1788756366920,
+              "subtasks": [
+                {
+                  "subtask": 0,
+                  "backpressureLevel": "ok",
+                  "ratio": 0.0,
+                  "idleRatio": 1.0,
+                  "busyRatio": 0.0,
+                  "backpressure-level": "ok"
+                }
+              ],
+              "backpressure-level": "ok"
+            }
+          }
+        ],
+        "source": "GET /jobs/:id/vertices/:vid/backpressure"
+      },
+      "note": "Vertex backpressure endpoint used; job-level metric may be 未测到"
+    }
+  },
+  "round_summaries": [
+    {
+      "round": 1,
+      "continuous_events": 2000,
+      "continuous_produce_wall_sec": 109.5092,
+      "continuous_input_eps": 18.263,
+      "probe_events": 44,
+      "probe_want_dau": 290,
+      "probe_want_pay_users": 4,
+      "doris_e2e": {
+        "status": "ok",
+        "definition": "Doris-query-visible E2E = host wallclock when Doris SELECT returns target dau/pay minus produce_wallclock_end of probe batch. Path: produce -> Flink upsert-kafka ADS -> script UNIQUE KEY materialize -> Doris SELECT.",
+        "produce_epoch": 1788756118.3586235,
+        "doris_visible_epoch": 1788756158.3070233,
+        "e2e_latency_ms": 39948.4,
+        "poll_wait_ms": 39818.776,
+        "want_dau": 290,
+        "want_pay_users": 4,
+        "doris_row": "290 4 0.013793103448275862",
+        "tries": 1,
+        "sink_honesty": "Flink continuous sink=upsert-kafka ALS+PK; Doris=plain INSERT UNIQUE KEY materialize; NOT EO-2PC"
+      },
+      "poll_flink_in_rate": {
+        "status": "ok",
+        "max": 316.867,
+        "avg": 128.892,
+        "samples": [
+          0.133,
+          0.133,
+          0.133,
+          0.133,
+          8.483,
+          31.833,
+          31.833,
+          31.833,
+          56.85,
+          126.867,
+          126.867,
+          126.867,
+          153.533,
+          190.2,
+          190.2,
+          190.2,
+          222.7,
+          237.7,
+          237.7,
+          237.7,
+          316.867,
+          316.867
+        ],
+        "reason": null
+      },
+      "poll_backpressure": {
+        "status": "ok",
+        "max_backPressuredTimeMsPerSecond": 0.0,
+        "observed": false,
+        "samples": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "reason": null
+      },
+      "checkpoint": {
+        "status": "ok",
+        "n": 10,
+        "avg_ms": 21.5,
+        "p50_ms": 21,
+        "p95_ms": 24,
+        "reason": null
+      },
+      "vertices_bp_levels": [
+        "ok",
+        "ok",
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "vertices_bp_max_ratio": 0.0
+    },
+    {
+      "round": 2,
+      "continuous_events": 2000,
+      "continuous_produce_wall_sec": 112.5801,
+      "continuous_input_eps": 17.765,
+      "probe_events": 44,
+      "probe_want_dau": 330,
+      "probe_want_pay_users": 8,
+      "doris_e2e": {
+        "status": "ok",
+        "definition": "Doris-query-visible E2E = host wallclock when Doris SELECT returns target dau/pay minus produce_wallclock_end of probe batch. Path: produce -> Flink upsert-kafka ADS -> script UNIQUE KEY materialize -> Doris SELECT.",
+        "produce_epoch": 1788756323.5328102,
+        "doris_visible_epoch": 1788756364.104987,
+        "e2e_latency_ms": 40572.177,
+        "poll_wait_ms": 40443.987,
+        "want_dau": 330,
+        "want_pay_users": 8,
+        "doris_row": "330 8 0.024242424242424242",
+        "tries": 1,
+        "sink_honesty": "Flink continuous sink=upsert-kafka ALS+PK; Doris=plain INSERT UNIQUE KEY materialize; NOT EO-2PC"
+      },
+      "poll_flink_in_rate": {
+        "status": "ok",
+        "max": 285.2,
+        "avg": 114.506,
+        "samples": [
+          54.1,
+          0.2,
+          0.2,
+          0.2,
+          13.533,
+          31.867,
+          31.867,
+          31.867,
+          75.2,
+          95.2,
+          95.2,
+          95.2,
+          127.7,
+          142.7,
+          142.7,
+          142.7,
+          182.7,
+          237.7,
+          237.7,
+          237.7,
+          257.7,
+          285.2
+        ],
+        "reason": null
+      },
+      "poll_backpressure": {
+        "status": "ok",
+        "max_backPressuredTimeMsPerSecond": 0.0,
+        "observed": false,
+        "samples": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "reason": null
+      },
+      "checkpoint": {
+        "status": "ok",
+        "n": 10,
+        "avg_ms": 32.9,
+        "p50_ms": 34,
+        "p95_ms": 38,
+        "reason": null
+      },
+      "vertices_bp_levels": [
+        "ok",
+        "ok",
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "vertices_bp_max_ratio": 0.0
+    }
+  ],
+  "player_state_expected": {
+    "expected_dau": 330,
+    "expected_pay_users": 8,
+    "events_total": 4088
+  },
+  "clock_skew": {
+    "host_utc": "2026-09-07T04:46:10Z",
+    "flink_jm_utc": "2026-09-07T04:46:10Z",
+    "flink_tm_utc": "2026-09-07T04:46:10Z",
+    "kafka_utc": "2026-09-07T04:46:10Z",
+    "doris_fe_utc": "2026-09-07T04:46:10Z",
+    "skew_jm_minus_host_sec": 0.0,
+    "skew_tm_minus_host_sec": 0.0,
+    "skew_kafka_minus_host_sec": 0.0,
+    "skew_doris_minus_host_sec": 0.0,
+    "note": "Doris-visible E2E uses host wallclock for both produce_end and Doris SELECT success — same host, no cross-clock subtraction"
+  },
+  "honesty": "Numbers copied from raw sampler outputs only. Missing -> 未测到 with reason. Not G6 Kafka-only E2E. Sink is ALS+PK / UNIQUE KEY — not EO-2PC."
+}

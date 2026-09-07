@@ -1,0 +1,18 @@
+{
+  "mode": "continuous",
+  "round": 2,
+  "events": 2000,
+  "write_wall_sec": 40.0002,
+  "write_events_per_sec": 50.0,
+  "wall_start_utc_naive": "2026-09-07 04:42:42.569",
+  "wall_end_utc_naive": "2026-09-07 04:43:22.569",
+  "out": "/tmp/g8s_medium_r2_continuous.jsonl",
+  "server_id": 88,
+  "dt": "2026-09-07",
+  "new_players": [],
+  "new_pay_players": [],
+  "expected_dau": 290,
+  "expected_pay_users": 4,
+  "rate_target": 50.0,
+  "duration_sec_target": 40.0
+}

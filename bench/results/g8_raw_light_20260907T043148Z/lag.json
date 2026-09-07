@@ -1,0 +1,62 @@
+{
+  "status": "ok",
+  "by_label": {
+    "lag_baseline": [],
+    "lag_final": [
+      {
+        "topic": "gamestream.g8s.ods.events",
+        "partition": 0,
+        "current_offset": 1844,
+        "log_end_offset": 1844,
+        "lag": 0
+      }
+    ],
+    "round_1_lag_after_continuous": [
+      {
+        "topic": "gamestream.g8s.ods.events",
+        "partition": 0,
+        "current_offset": 810,
+        "log_end_offset": 900,
+        "lag": 90
+      }
+    ],
+    "round_1_lag_after_probe": [
+      {
+        "topic": "gamestream.g8s.ods.events",
+        "partition": 0,
+        "current_offset": 922,
+        "log_end_offset": 922,
+        "lag": 0
+      }
+    ],
+    "round_1_lag_before": [],
+    "round_2_lag_after_continuous": [
+      {
+        "topic": "gamestream.g8s.ods.events",
+        "partition": 0,
+        "current_offset": 1732,
+        "log_end_offset": 1822,
+        "lag": 90
+      }
+    ],
+    "round_2_lag_after_probe": [
+      {
+        "topic": "gamestream.g8s.ods.events",
+        "partition": 0,
+        "current_offset": 1844,
+        "log_end_offset": 1844,
+        "lag": 0
+      }
+    ],
+    "round_2_lag_before": [
+      {
+        "topic": "gamestream.g8s.ods.events",
+        "partition": 0,
+        "current_offset": 922,
+        "log_end_offset": 922,
+        "lag": 0
+      }
+    ]
+  },
+  "source": "kafka-consumer-groups.sh --describe --group"
+}

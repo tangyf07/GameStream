@@ -34,6 +34,9 @@ bench/results/**
 !bench/results/g6_*.json
 !bench/results/g6_raw_*/
 !bench/results/g6_raw_*/**
+!bench/results/g8_*.json
+!bench/results/g8_raw_*/
+!bench/results/g8_raw_*/**
 
 # IDE / OS
 .idea/
@@ -55,3 +58,4 @@ tmp/
 # Flink local checkpoint volume (G4 demo); keep .gitkeep
 flink/checkpoints/**
 !flink/checkpoints/.gitkeep
+_xfer/

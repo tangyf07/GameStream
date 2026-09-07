@@ -1,0 +1,42 @@
+{
+  "mode": "probe",
+  "round": 1,
+  "events": 22,
+  "write_wall_sec": 0.0004,
+  "write_events_per_sec": 60354.666,
+  "wall_start_utc_naive": "2026-09-07 04:34:45.838",
+  "wall_end_utc_naive": "2026-09-07 04:34:45.838",
+  "out": "/tmp/g8s_light_r1_probe.jsonl",
+  "server_id": 88,
+  "dt": "2026-09-07",
+  "new_players": [
+    101000,
+    101001,
+    101002,
+    101003,
+    101004,
+    101005,
+    101006,
+    101007,
+    101008,
+    101009,
+    101010,
+    101011,
+    101012,
+    101013,
+    101014,
+    101015,
+    101016,
+    101017,
+    101018,
+    101019
+  ],
+  "new_pay_players": [
+    101000,
+    101001
+  ],
+  "expected_dau": 169,
+  "expected_pay_users": 2,
+  "rate_target": null,
+  "duration_sec_target": null
+}

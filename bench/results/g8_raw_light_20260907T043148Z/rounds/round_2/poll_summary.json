@@ -1,0 +1,88 @@
+{
+  "poll_file": "/mnt/c/Users/tangy/source/repos/GameStream/bench/results/g8_raw_light_20260907T043148Z/rounds/round_2/poll.json",
+  "n_samples": 19,
+  "flink_in_rate_per_s": {
+    "status": "ok",
+    "max": 161.7,
+    "avg": 63.812,
+    "samples": [
+      40.333,
+      0.2,
+      0.2,
+      0.2,
+      13.2,
+      19.2,
+      19.2,
+      19.2,
+      51.7,
+      66.7,
+      66.7,
+      66.7,
+      82.7,
+      104.7,
+      104.7,
+      104.7,
+      128.7,
+      161.7,
+      161.7
+    ],
+    "reason": null
+  },
+  "backpressure": {
+    "status": "ok",
+    "max_backPressuredTimeMsPerSecond": 0.0,
+    "observed": false,
+    "samples": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": null
+  },
+  "checkpoints_final": {
+    "status": "ok",
+    "counts": {
+      "restored": 0,
+      "total": 25,
+      "in_progress": 0,
+      "completed": 24,
+      "failed": 1
+    },
+    "completed_in_history": 10,
+    "end_to_end_duration_ms_samples": [
+      21,
+      19,
+      25,
+      21,
+      25,
+      19,
+      18,
+      19,
+      18,
+      17
+    ],
+    "source": "GET http://127.0.0.1:8081/jobs/6c609ba1c85fb6c2f64947bbb28887a2/checkpoints → history[].end_to_end_duration",
+    "avg_ms": 20.2,
+    "p50_ms": 19,
+    "p95_ms": 25,
+    "min_ms": 17,
+    "max_ms": 25,
+    "n": 10
+  }
+}

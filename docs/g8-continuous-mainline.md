@@ -11,7 +11,7 @@
 | Doris ADS | 有界一次性灌数 | 多数写 Kafka / 专项表 | **持续** upsert `ads_*` |
 | 故障 | 无 | G5 单独 kill-TM | **同一 job** kill-TM 后继续更新 ADS |
 
-**不在范围：** 编造压测吞吐/Lag/P95（稳态 bench 放 G8 之后）；扩展 metric zoo；宣称端到端 EO-2PC。
+**不在范围：** 编造压测吞吐/Lag/P95（稳态见 G8 steady bench）；扩展 metric zoo；宣称端到端 EO-2PC。
 
 ## 面试叙事（持续 ADS，不是有界批）
 
@@ -107,4 +107,4 @@ WSL run **2026-09-07**（UTC `04:01:01` ≈ **12:01 Asia/Shanghai**）。job `d9
 - 最终 Doris：`ads_dau_di (2026-09-07,1)=10`；`ads_pay_rate_di pay_users=2 pay_rate=0.2`
 - 全量粘贴：[`g8-continuous-mainline-result.txt`](g8-continuous-mainline-result.txt)
 
-不编造吞吐/Lag/P95；稳态 bench 放 G8 之后另测。
+不编造吞吐/Lag/P95；稳态 bench 已测：[`docs/g8-steady-bench.md`](g8-steady-bench.md)（数字只引 `bench/results/g8_*.json`）。

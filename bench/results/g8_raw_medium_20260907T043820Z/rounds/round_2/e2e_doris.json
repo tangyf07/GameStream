@@ -1,0 +1,13 @@
+{
+  "status": "ok",
+  "definition": "Doris-query-visible E2E = host wallclock when Doris SELECT returns target dau/pay minus produce_wallclock_end of probe batch. Path: produce -> Flink upsert-kafka ADS -> script UNIQUE KEY materialize -> Doris SELECT.",
+  "produce_epoch": 1788756323.5328102,
+  "doris_visible_epoch": 1788756364.104987,
+  "e2e_latency_ms": 40572.177,
+  "poll_wait_ms": 40443.987,
+  "want_dau": 330,
+  "want_pay_users": 8,
+  "doris_row": "330 8 0.024242424242424242",
+  "tries": 1,
+  "sink_honesty": "Flink continuous sink=upsert-kafka ALS+PK; Doris=plain INSERT UNIQUE KEY materialize; NOT EO-2PC"
+}

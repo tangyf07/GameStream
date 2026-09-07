@@ -1,0 +1,7 @@
+{
+  "events": 2000,
+  "produce_wall_sec": 109.5092,
+  "input_events_per_sec": 18.263,
+  "chunks": 40,
+  "mode": "chunked_continuous"
+}
