@@ -36,7 +36,7 @@ flowchart LR
 
 ## 三仓固化验收
 
-**三仓固化验收**：[`docs/suite-acceptance.md`](docs/suite-acceptance.md)（GameStream `2253b25`+ / SQLGuard `7dc85dd`=1.1.2 / DataPilot **`2541623`**；默认 **strict** 门禁；G8 不在 suite required 内，见下文）。
+**三仓固化验收**：[`docs/suite-acceptance.md`](docs/suite-acceptance.md)（GameStream `ed876e1`+ / SQLGuard `7dc85dd`=1.1.2 / DataPilot **`2541623`**；默认 **strict** 门禁；G8 不在 suite required 内，见下文）。
 
 细节与状态语义见文档；跑：`bash scripts/suite_acceptance.sh`（WSL 请先 `sed` 去 CRLF）。报告：[`docs/suite-acceptance-result.txt`](docs/suite-acceptance-result.txt)。
 
@@ -106,7 +106,7 @@ GAMESTREAM_ROOT=/mnt/c/Users/tangy/source/repos/GameStream MODE=fixture bash /tm
 细节：[`docs/g7-closed-loop.md`](docs/g7-closed-loop.md)（fixture Prompt→SQL→`/v1/check|/v1/execute`→ADS 行；strict `allow_unknown_*=false`；可选 DataPilot）。合法 ADS SELECT **各返回若干行**（见 result transcript，勿写「EXECUTE×N」）。**不含** 新 UI / 编造指标（灌数见 G8）。
 
 
-## G8 持续 Doris ADS 主流水线（WSL）
+## G8 单一持续 Flink 作业＋脚本阶段物化 Doris（WSL）
 
 ```bash
 cp scripts/g8_continuous_mainline.sh /tmp/g8.sh && sed -i 's/\r$//' /tmp/g8.sh

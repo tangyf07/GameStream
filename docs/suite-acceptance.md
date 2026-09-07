@@ -9,7 +9,7 @@
 
 | 仓 | Pin（baseline） | 说明 |
 |----|-----------------|------|
-| **GameStream** | `2253b25`（或更新的 main） | suite 基线；**实际 HEAD 可更新**（pin 为 ancestor 即 OK） |
+| **GameStream** | `ed876e1`（或更新的 main） | suite 基线（strict gate + G8 文案诚实）；**实际 HEAD 可更新**（pin 为 ancestor 即 OK） |
 | **SQLGuard**（sql-write-gate） | `7dc85dd` → **v1.1.2** | `make test`；healthz `1.1.2`；继承 1.1.1 限定名身份（`hive.ads_dau_di` BLOCK）；路由 `/v1/check` `/v1/block` `/v1/execute` |
 | **DataPilot** | **`2541623`** | `pytest -m suite_p0`（**37 passed**；行为超集 `e3e603d`）；**行为基线含 `285202c` P0**（no-mock-fallback / 时间谓词 / HTTP 契约） |
 
@@ -63,7 +63,7 @@ MODE=report-only bash /tmp/suite_acc.sh
 | **b) `sqlguard_cross_db_hive`** | `hive.ads_dau_di` 必须 **BLOCK**（1.1.2） | **yes** | healthz=1.1.2 且 datapilot/action=BLOCK | 版本不对或未 BLOCK | serve 不可用且无 G7 证据 |
 | **c) `datapilot_offline_p0`** | 优先 `pytest -m suite_p0 -q`（`2541623`，期望 **37 passed**）；否则三文件等价入口 | **yes** | pytest exit 0 | 非 0 | clone 缺失 |
 | **c2) `datapilot_doris_g7`** | 可选 `pytest tests/test_doris_g7.py` | no | 真连 Doris 且绿 | 联调失败（**FAIL 优先于 SKIP**） | Doris 不可达 → **SKIP（勿当 PASS）** |
-| **d) `sqlguard_unit`** | `make test`（或 `pytest -q`）；可选 `tests/test_v110.py`；`gh run list` 实录 | **yes** | 真实绿（live PG/MySQL SKIP 可接受） | 真实红 | clone 缺失 |
+| **d) `sqlguard_unit`** | `make test`（或 `pytest -q`）；可选 `tests/test_v110.py`；CI 实录 | **yes** | 本地绿 **或** 本地 env 阻断（无 make / python3.x-venv / ensurepip）且 **CI success@pin**（backend=`github-ci`，detail 写明 local≠PASS） | 本地真红且无 CI 证据 | clone 缺失 |
 
 **Pin 结果 token：** `OK:<full_sha>:<dirty_summary>` / `MISMATCH:<full_sha>:…` / `MISSING:n/a`。GameStream 允许「pin 或更新」；SQLGuard / DataPilot 要求 short-SHA 对齐 pin。
 

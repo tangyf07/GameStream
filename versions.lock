@@ -4,9 +4,9 @@
 # 文档：docs/suite-acceptance.md
 
 [pins]
-GameStream = 2253b25
+GameStream = ed876e1
 GameStream_repo = https://github.com/tangyf07/GameStream
-GameStream_note = base for suite-acceptance; landing commit will be newer on main
+GameStream_note = verification baseline after strict-gate + G8 wording honesty; HEAD may be newer (ancestor OK)
 
 SQLGuard = 7dc85dd
 SQLGuard_repo = https://github.com/tangyf07/sql-write-gate
@@ -34,4 +34,5 @@ g7_closed_loop = MODE=fixture bash scripts/g7_closed_loop.sh
 sqlguard_cross_db_hive = hive.ads_dau_di BLOCK on 1.1.2
 datapilot_offline_p0 = pytest -m suite_p0 -q
 datapilot_doris_optional = pytest tests/test_doris_g7.py -q  # SKIP if no Doris
-sqlguard_unit = make test  # live PG/MySQL may SKIP; gh run list for CI
+sqlguard_unit = make test  # required; live PG/MySQL SKIP OK
+sqlguard_unit_env_optional = local wheel/venv/make blockers → accept GitHub CI success for pin (never invent local PASS)
