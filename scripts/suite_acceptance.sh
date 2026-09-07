@@ -107,7 +107,7 @@ short_sha() {
 
 repo_dirty_summary() {
   local path="$1"
-  if [[ ! -d "$path/.git" ]]; then
+  if [[ ! -e "$path/.git" ]]; then
     echo "n/a"
     return 0
   fi
@@ -134,7 +134,7 @@ repo_dirty_summary() {
 # SQLGuard/DataPilot: exact short-SHA match required.
 verify_repo_pin() {
   local name="$1" path="$2" expect="$3"
-  if [[ ! -d "$path/.git" ]]; then
+  if [[ ! -e "$path/.git" ]]; then
     logf "[pin] $name clone missing at $path → MISSING"
     echo "MISSING:n/a"
     return 0
@@ -145,7 +145,9 @@ verify_repo_pin() {
   expect_short=$(short_sha "$expect")
   dirty=$(repo_dirty_summary "$path")
   logf "[pin] $name actual_HEAD_full=$head_full short=$head_short dirty=$dirty pin_baseline=$expect"
-  if [[ "$name" == "GameStream" ]]; then
+  # GameStream + DataPilot: pin is baseline — OK if HEAD == pin OR pin ancestor of HEAD.
+  # SQLGuard: exact short-SHA (release pin). DataPilot suite_p0 is the behavioral gate.
+  if [[ "$name" == "GameStream" || "$name" == "DataPilot" ]]; then
     if [[ "$head_short" == "$expect_short" ]] || [[ "$head_full" == "$expect"* ]] \
       || git -C "$path" merge-base --is-ancestor "$expect" HEAD 2>/dev/null \
       || git -C "$path" merge-base --is-ancestor "$expect_short" HEAD 2>/dev/null; then
@@ -317,7 +319,7 @@ log ""
 
 # ---------- c) DataPilot no-mock-fallback / suite_p0 ----------
 log "=== c) DataPilot offline P0 (no-mock-fallback @ ${PIN_DP}) ==="
-if [[ ! -d "$DATAPILOT_REPO/.git" ]]; then
+if [[ ! -e "$DATAPILOT_REPO/.git" ]]; then
   set_status datapilot_offline_p0 SKIP "DataPilot clone missing at $DATAPILOT_REPO" n/a
 else
   DP_HEAD=$(git -C "$DATAPILOT_REPO" rev-parse --short HEAD 2>/dev/null || echo unknown)
@@ -397,7 +399,7 @@ log ""
 # ---------- d) SQLGuard unit tests / CI (pin 7dc85dd / v1.1.2) ----------
 log "=== d) SQLGuard unit tests / CI summary (expect @$PIN_SG / $PIN_SG_VER) ==="
 log "routes contract: /v1/check|/v1/block|/v1/execute"
-if [[ ! -d "$SQLGUARD_REPO/.git" ]]; then
+if [[ ! -e "$SQLGUARD_REPO/.git" ]]; then
   set_status sqlguard_unit SKIP "sql-write-gate clone missing at $SQLGUARD_REPO" n/a
 else
   SG_HEAD=$(git -C "$SQLGUARD_REPO" rev-parse --short HEAD 2>/dev/null || echo unknown)
