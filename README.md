@@ -32,7 +32,7 @@ flowchart LR
 | OLAP | Parquet + DuckDB | **Doris** FE/BE（HTTP `:8030` / MySQL `:9030`） |
 | 端到端 | lite ADS 在 DuckDB | **G2 已验证**：Simulator→Kafka→Flink→Doris ADS（见 [`docs/e2e-g2.md`](docs/e2e-g2.md)） |
 
-**勿夸大：** G1 = 组件可起 + 端口可达。G2 = 小规模 E2E 写入 Doris ADS（`ads_dau_di` / `ads_pay_rate_di`）。G3 = event-time watermark / 乱序·迟到 / `event_id` 去重（见 [`docs/g3-stream-semantics.md`](docs/g3-stream-semantics.md)）。**G4 已做**：checkpoint + 重启恢复 + 充值 `event_id` 幂等（见 [`docs/g4-checkpoint-idempotency.md`](docs/g4-checkpoint-idempotency.md)）。**未宣称** G5–G7（TM kill 演练、倾斜专项、Lag/吞吐/P95 压测编造、K8s/Spark/Iceberg 生产部署）。lite 与 prod **同口径**（同一套 `metric_id`）。
+**勿夸大：** G1 = 组件可起 + 端口可达。G2 = 小规模 E2E 写入 Doris ADS（`ads_dau_di` / `ads_pay_rate_di`）。G3 = event-time watermark / 乱序·迟到 / `event_id` 去重（见 [`docs/g3-stream-semantics.md`](docs/g3-stream-semantics.md)）。**G4 已做**：checkpoint + 重启恢复 + 充值 `event_id` 幂等（见 [`docs/g4-checkpoint-idempotency.md`](docs/g4-checkpoint-idempotency.md)）。**G5 已做**：真杀 Flink TaskManager（`docker kill gs-flink-tm`）+ restart-strategy 从 CP 恢复 + 充值不双计（见 [`docs/g5-fault-drill.md`](docs/g5-fault-drill.md)）。**未宣称** G6–G7（倾斜专项、Lag/吞吐/P95 压测编造、K8s/Spark/Iceberg 生产部署）。lite 与 prod **同口径**（同一套 `metric_id`）。
 
 ## G2 快速跑（WSL，小流量）
 
@@ -67,6 +67,18 @@ GAMESTREAM_ROOT=/mnt/c/Users/tangy/source/repos/GameStream bash /tmp/g4.sh
 细节：[`docs/g4-checkpoint-idempotency.md`](docs/g4-checkpoint-idempotency.md)（10s checkpoint、`file:///checkpoints`、cancel→restore、充值 `event_id` 不双计）。**不含** G5–G7。Doris = ALS + UNIQUE KEY，**不**宣称端到端 EO-2PC。
 
 
+
+## G5 故障演练（WSL，kill TaskManager）
+
+```bash
+# 若刚改 compose（restart-strategy）：先 recreate JM/TM
+docker compose up -d --force-recreate jobmanager taskmanager
+cp scripts/g5_fault_drill.sh /tmp/g5.sh && sed -i 's/\r$//' /tmp/g5.sh
+GAMESTREAM_ROOT=/mnt/c/Users/tangy/source/repos/GameStream bash /tmp/g5.sh
+```
+
+细节：[`docs/g5-fault-drill.md`](docs/g5-fault-drill.md)（`docker kill gs-flink-tm`、fixed-delay 恢复、checkpoint→barrier→state→offset→replay→dedup）。**不含** G6–G7。Doris = ALS + UNIQUE KEY，**不**宣称端到端 EO-2PC。
+
 ## 事件与分层
 
 11 类：`login | create_role | enter_dungeon | clear_dungeon | death | equip | enhance | recharge | gacha | friend | logout`（`simulator/`）。
@@ -88,6 +100,7 @@ Windows：`.\scripts\quality_gate.ps1` / `.\scripts\run_all.ps1`。
 
 - [`docs/flink-kafka-deep-dive.md`](docs/flink-kafka-deep-dive.md)
 - [`docs/g3-stream-semantics.md`](docs/g3-stream-semantics.md)（G3 watermark / 乱序 / 去重）
+- [`docs/g5-fault-drill.md`](docs/g5-fault-drill.md)（G5 kill-TM / failover）
 - [`docs/interview-faq.md`](docs/interview-faq.md)
 - `flink/conf/checkpoint-recommendations.yaml` · `flink/sql/*` · `flink/jobs/*`
 

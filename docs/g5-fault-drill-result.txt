@@ -1,0 +1,63 @@
+=== G5 TaskManager kill / fault drill result ===
+time_utc=2026-09-07T01:44:26Z
+job_id=c76151f11a3062940253c74c0aa62199
+group.id=gamestream-g5-fault-v1
+kill_cmd=docker kill gs-flink-tm
+checkpoint_interval=10s state.backend=hashmap state.checkpoints.dir=file:///checkpoints
+restart-strategy=fixed-delay attempts=10 delay=5s(sql)/10s(compose)
+tm_compose_restart=unless-stopped
+
+=== checkpoint before kill ===
+completed_count=1
+external_path=file:/checkpoints/c76151f11a3062940253c74c0aa62199/chk-1
+counts= {"restored": 0, "total": 1, "in_progress": 0, "completed": 1, "failed": 0}
+latest_completed= {"id": 1, "status": "COMPLETED", "external_path": "file:/checkpoints/c76151f11a3062940253c74c0aa62199/chk-1", "checkpointed_size": 24585, "state_size": 24585}
+
+=== Flink REST job status transitions ===
+2026-09-07T01:42:17Z job RUNNING id=c76151f11a3062940253c74c0aa62199
+2026-09-07T01:42:30Z agg_before={"metric_id": "g5_recharge", "recharge_cnt": 5, "amount_sum": 244, "player_cnt": 5}
+2026-09-07T01:42:30Z checkpoint_completed=1 path=file:/checkpoints/c76151f11a3062940253c74c0aa62199/chk-1
+2026-09-07T01:42:30Z pre_kill job_state=RUNNING
+2026-09-07T01:42:30Z tm_before=running restart=unless-stopped
+2026-09-07T01:42:31Z docker_kill_rc=0
+2026-09-07T01:42:33Z tm_just_after_kill=gs-flink-tm Exited (137) 2 seconds ago 
+2026-09-07T01:42:33Z job_state_transition  -> RUNNING (tm=exited slots=2 tms=1)
+2026-09-07T01:43:16Z job_state_transition RUNNING -> RESTARTING (tm=exited slots=0 tms=0)
+2026-09-07T01:43:24Z job_state_transition RESTARTING -> RUNNING (tm=running slots=0 tms=0)
+2026-09-07T01:43:28Z tm_back slots=2 tms=1
+2026-09-07T01:43:28Z job_recovered RUNNING after TM kill
+2026-09-07T01:43:43Z agg_after_failover={"metric_id": "g5_recharge", "recharge_cnt": 5, "amount_sum": 244, "player_cnt": 5}
+2026-09-07T01:43:55Z agg_after_dup={"metric_id": "g5_recharge", "recharge_cnt": 5, "amount_sum": 244, "player_cnt": 5}
+2026-09-07T01:44:08Z agg_after_new={"metric_id": "g5_recharge", "recharge_cnt": 6, "amount_sum": 342, "player_cnt": 6}
+
+=== aggregates ===
+before_tm_kill={"metric_id": "g5_recharge", "recharge_cnt": 5, "amount_sum": 244, "player_cnt": 5}
+after_failover_settle={"metric_id": "g5_recharge", "recharge_cnt": 5, "amount_sum": 244, "player_cnt": 5}
+after_failover_dup_replay={"metric_id": "g5_recharge", "recharge_cnt": 5, "amount_sum": 244, "player_cnt": 5}
+after_new_event={"metric_id": "g5_recharge", "recharge_cnt": 6, "amount_sum": 342, "player_cnt": 6}
+expected: before=5/244; after dups still 5/244; after new=6/342 (NO double prior money)
+
+=== Kafka dedup audit (unique event_ids) ===
+dedup_rows= 6 unique_ids= 6
+ids= ['g5-r-01', 'g5-r-02', 'g5-r-03', 'g5-r-04', 'g5-r-05', 'g5-r-06']
+
+=== checkpoints after recover completed=5 ===
+
+=== Doris load from final Kafka agg (ALS + UNIQUE KEY; NOT EO-2PC) ===
+loaded ads.g5_recharge_di from kafka agg
+=== Doris ads.g5_recharge_di ===
+metric_id	recharge_cnt	amount_sum	player_cnt
+g5_recharge	6	342.00	6
+
+=== consistency class (honest) ===
+This is a FAIL-OVER drill (kill TM), not EO-2PC.
+Flink checkpoint mode=EXACTLY_ONCE (operator state + Kafka source offsets)
+restart-strategy fixed-delay recovers the SAME job id from last completed CP
+Kafka upsert sink=at-least-once + PK idempotent upsert (NOT transactional EO)
+Doris UNIQUE KEY=idempotent absorb of ALS retries (NOT claim end-to-end EO-2PC)
+
+=== OVERALL ===
+PASS cp_completed= 1
+before {'metric_id': 'g5_recharge', 'recharge_cnt': 5, 'amount_sum': 244, 'player_cnt': 5}
+after_dup {'metric_id': 'g5_recharge', 'recharge_cnt': 5, 'amount_sum': 244, 'player_cnt': 5}
+after_new {'metric_id': 'g5_recharge', 'recharge_cnt': 6, 'amount_sum': 342, 'player_cnt': 6}
