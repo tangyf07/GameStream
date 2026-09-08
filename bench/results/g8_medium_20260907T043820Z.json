@@ -17,7 +17,7 @@
   "rate_target_eps": 50.0,
   "duration_sec_per_round": 40.0,
   "doris_alive": "true",
-  "raw_dir": "/mnt/c/Users/tangy/source/repos/GameStream/bench/results/g8_raw_medium_20260907T043820Z",
+  "raw_dir": "<repo-root>/bench/results/g8_raw_medium_20260907T043820Z",
   "sink_honesty": {
     "flink_continuous_sink": "upsert-kafka (ALS + PK)",
     "doris_materialize": "plain INSERT on UNIQUE KEY (script)",
