@@ -5,7 +5,7 @@
 
 核心是 Flink SQL / 指标口径（`pipeline/`、`flink/`），不是 Shell 胶水。
 
-## Problem
+## Why
 
 埋点乱序、弱网重传。要按事件时间算 DAU：重复不双计、迟到可控、kill TM 后能恢复且计数不翻倍。
 
@@ -23,19 +23,21 @@ flowchart LR
 |----|------|
 | 接入 | Kafka `:19092` |
 | 流处理 | Flink JM/TM（UI `:8081`），event-time + watermark |
+| 物化 | 常驻 materializer：upsert-kafka → Doris UNIQUE KEY（显式分区 offset commit） |
 | 服务 | Doris MySQL `:9030`（BE 须 Alive） |
 | 验收指标 | 仅 **`ads_dau_di`** |
 
-六节拍演示：[`docs/golden-path-demo.md`](docs/golden-path-demo.md)。G3–G8 实验：[`docs/experiments.md`](docs/experiments.md)。
+六节拍演示：[`docs/golden-path-demo.md`](docs/golden-path-demo.md)。G3–G8 / bench：[`docs/experiments.md`](docs/experiments.md) · [`bench/`](bench/)。
 
 ## Guarantees
 
 | 能力 | 做法 | 证明 |
 |------|------|------|
-| `event_id` 去重 | upsert / DISTINCT | [G3](docs/g3-stream-semantics.md) |
-| watermark 迟到丢弃 | event-time 关窗 | [G3](docs/g3-stream-semantics.md) |
+| `event_id` 去重 | Rank / DISTINCT（有界 horizon，见 Design） | [G3](docs/g3-stream-semantics.md) |
+| watermark 迟到丢弃 | event-time 关窗（分钟窗） | [G3](docs/g3-stream-semantics.md) |
 | checkpoint 恢复 | restart-strategy | [G4](docs/g4-checkpoint-idempotency.md) / [G5](docs/g5-fault-drill.md) |
 | kill TM 不双计 | 同 job 拉回 + 幂等键 | [G5](docs/g5-fault-drill.md) |
+| Doris ALS | 写确认后 **显式 per-partition** offset commit | [G8 materializer](docs/g8-resident-materializer.md) |
 
 不宣称 EO-2PC；Doris = at-least-once + UNIQUE KEY。
 
@@ -59,9 +61,30 @@ docker exec gs-doris-fe mysql -h127.0.0.1 -P9030 -uroot -e \
 
 ![ads_dau_di query evidence](docs/evidence/ads_dau_di.png)
 
+## Design decisions
+
+| 决策 | 原因 |
+|------|------|
+| 日 ADS **不设短 `state.ttl`** | 非窗口 `GROUP BY CAST(event_time AS DATE)` 需长期 day-bucket 状态；短 TTL（如 1d）会丢掉仍可订正的日内累加。关窗改用 TUMBLE 1 DAY，G8 主流水线不用。 |
+| Rank `event_id` 去重 = **bounded horizon** | 本作业故意不设 job-level TTL；若运维为控内存启用 TTL，超窗重复可能再进入，不得宣称永久唯一。 |
+| Materializer **显式 per-partition commit** | 禁止无参 `commit()`；仅在 Doris 写确认后提交已应用 offset（ALS）。脏 JSON → skip/DLQ，再推进 offset。 |
+| Retention 仅 `window_complete` | 观察窗 `max_dt >= cohort_dt+N` 才吐行，避免未完成窗低估留存；`first_seen` = 首次观测活动日，非纯注册 cohort。 |
+| Spark batch = **DWS + DAU only** | `spark/jobs/dws_ads_batch.py` 不做 retention/churn；口径见 `sql/metrics/` 与 DuckDB lite。 |
+
 ## Limitations
 
 - G2 = 有界 E2E；G3–G5 = 独立演练；G8 持续主流水线见 docs，不在 suite required。
 - 未宣称 K8s / Spark / Iceberg 生产部署，不编造 SLA / Lag / P95。
 - lite（DuckDB，`scripts/run_all.sh`）与 Docker **同口径、不同运行时**。
-- 实验索引：[`docs/experiments.md`](docs/experiments.md) · 契约：[`docs/datapilot_contract.md`](docs/datapilot_contract.md) · [`config/metrics.yaml`](config/metrics.yaml)
+- 无 G9；不扩新功能面。
+
+## Docs
+
+| 文档 | 内容 |
+|------|------|
+| [`docs/experiments.md`](docs/experiments.md) | G2–G8 实验索引（命令与结果入口） |
+| [`docs/golden-path-demo.md`](docs/golden-path-demo.md) | 六节拍演示 |
+| [`bench/`](bench/) | G6 / G8 压测结果 JSON |
+| [`docs/datapilot_contract.md`](docs/datapilot_contract.md) | DataPilot / SQLGuard 契约 |
+| [`config/metrics.yaml`](config/metrics.yaml) | 指标注册 |
+| [`ARCHITECTURE.md`](ARCHITECTURE.md) | 短架构（ODS→ADS / lite） |
