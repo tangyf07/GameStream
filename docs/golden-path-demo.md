@@ -2,6 +2,8 @@
 
 面向 WSL + Docker 现场演示。只证明一条链路、一个指标：
 
+README 入口：仓库根 [`README.md`](../README.md)。G3–G8 命令索引：[`experiments.md`](experiments.md)。
+
 **事件 → Kafka → Flink → `ads_dau_di` → Doris**
 
 六节拍固定：**正常 → 重复 → 迟到 → kill TM → 恢复 → 对 DAU**。映射到仓库**已有**脚本，不引入新 pipeline / 新 metric。
