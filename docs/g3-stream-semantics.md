@@ -46,7 +46,7 @@ Row-level upsert-kafka dedup remains the production ODS pattern (`flink/sql/01_o
 
 ## State / TTL boundaries
 
-- Rank dedup audit: keyed state per `event_id`, **no `state.ttl.time`** configured → OK only for tiny demos.
+- Rank dedup audit: keyed state per `event_id`, **no `state.ttl.time`** configured → **job-lifetime** (grows with distinct ids; OK only for tiny demos). Becomes **bounded-horizon** only if ops enables TTL.
 - Window `COUNT(DISTINCT …)`: also keyed state per window; windows clear after fire (no allowed lateness).
 - Idle timeout: `table.exec.source.idle-timeout=5s` so an idle Kafka source does not permanently stall watermarks after produce stops.
 
