@@ -13,6 +13,21 @@
 --   Kafka ODS → clean → Rank(event_id) → unbounded daily GROUP BY
 --     → upsert-kafka gamestream.g8.ads_dau / gamestream.g8.ads_pay_rate
 --   resident materializer → ads.ads_dau_di / ads.ads_pay_rate_di
+--
+-- State / TTL contract (P0 correctness):
+--   * Daily ADS uses non-window `GROUP BY CAST(event_time AS DATE)` so mid-day
+--     buckets stay correctable (continuous upsert). That keyed agg state is
+--     **long-lived for the job lifetime** — do NOT set a short
+--     `table.exec.state.ttl` (e.g. 1d) on this job; TTL would drop day-bucket
+--     accumulators while late/same-day corrections can still arrive.
+--   * Alternative closed-day semantics: event-time `TUMBLE(..., 1 DAY)` (see
+--     flink/sql/02_dwd_dws_realtime.sql). TUMBLE emits on watermark close and
+--     does not provide mid-day continuous correctable gauges — not used here.
+--   * `event_id` Rank dedup state is a **bounded horizon** only if a state TTL
+--     is configured. This job intentionally omits job-level TTL, so Rank state
+--     grows with distinct event_ids (memory tradeoff). If an operator later
+--     enables TTL for memory, duplicates older than that TTL may re-enter —
+--     treat dedup as **bounded-horizon**, not forever-unique.
 -- =============================================================================
 
 SET 'execution.runtime-mode' = 'streaming';
@@ -34,7 +49,8 @@ SET 'restart-strategy.fixed-delay.attempts' = '10';
 SET 'restart-strategy.fixed-delay.delay' = '5s';
 
 SET 'table.exec.source.idle-timeout' = '5 s';
-SET 'table.exec.state.ttl' = '1 d';
+-- NOTE: intentionally NO table.exec.state.ttl here — see header contract.
+-- Short TTL (e.g. 1d) conflicts with long-lived non-window daily GROUP BY.
 
 CREATE TABLE kafka_g8_ods (
     event_id      STRING,

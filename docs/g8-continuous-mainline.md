@@ -52,7 +52,15 @@ resident materializer（常驻）：upsert-kafka → mysql INSERT/DELETE → Dor
 | 乱序 | 同日 OOO 仍进同一 `dt` 桶（fixture 含 `ooo_within_bound`） |
 | 迟到 / 日桶 | **日 ADS = 开窗可订正**（unbounded key-by），不是 G3 分钟窗的关窗丢弃。G3 关窗 drop 仍由 `g3_stream_semantics` 证明 |
 | Sink | Flink = upsert-kafka ALS；Doris = **常驻 materializer** UNIQUE KEY（脚本阶段=fallback）；at-least-once；**不**宣称 EO-2PC / JDBC upsert |
-| State | `table.exec.state.ttl=1d`，parallelism=1，适配 ~7.6Gi |
+| State | **无**短 `table.exec.state.ttl`（与非窗口日 `GROUP BY` 长期状态冲突已移除）；parallelism=1，适配 ~7.6Gi。`event_id` Rank 去重在启用 TTL 时仅为 **bounded horizon** |
+
+
+### State TTL vs daily GROUP BY（正确性契约）
+
+- 日 ADS 使用 **非窗口** `GROUP BY CAST(event_time AS DATE)`，以便日内可持续订正。
+- 因此 **不能** 对该作业设置短 `table.exec.state.ttl`（例如 `1d`）：TTL 会在同日迟到/订正仍可能到达时丢掉 day-bucket 累加状态。
+- 若需要关窗语义，改用 event-time **TUMBLE 1 DAY**（见 `flink/sql/02_dwd_dws_realtime.sql`）；TUMBLE 在 watermark 关窗后输出，**不**提供日内连续可订正 gauge——G8 主流水线不采用。
+- `event_id` Rank 去重：本作业故意不设 job-level TTL，Rank 状态随 distinct `event_id` 增长。若运维为控内存启用 TTL，则去重变为 **bounded horizon**（超窗重复可能再进入），不得宣称永久唯一。
 
 ## metric_id
 
