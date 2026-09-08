@@ -22,11 +22,12 @@ Acceptance scripts **produce + SELECT only** — they must **not** drive the wri
 
 | Point | Behavior |
 |-------|----------|
-| Delivery | **at-least-once** — Kafka offsets commit **only after** Doris write confirmed |
+| Delivery | **at-least-once** — **explicit per-partition** offset commit **only after** Doris write confirmed (parameterless `commit()` forbidden) |
 | Failure | Doris briefly down → retry; **do not advance / commit offset** |
 | Upsert | plain `INSERT` into UNIQUE KEY → replace; duplicate upserts idempotent |
 | Tombstone | upsert-kafka null value → `DELETE` by `(dt, server_id)` |
 | Kill/restart | uncommitted offsets redelivered; UNIQUE KEY prevents gauge double-count |
+| Dirty JSON | `invalid_json` / `skipped_dirty` counters; optional `G8_MAT_DLQ_PATH` JSONL; offset advanced after skip |
 | Not claimed | EO-2PC; exactly-once into Doris; Flink JDBC upsert |
 
 ## How to run
