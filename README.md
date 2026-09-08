@@ -35,7 +35,10 @@ docker exec gs-doris-fe mysql -h127.0.0.1 -P9030 -uroot -e \
   "SELECT dt, server_id, dau, metric_id FROM ads.ads_dau_di WHERE metric_id='ads_dau_di' AND dau>0 ORDER BY dt, server_id;"
 ```
 
-对照：[`docs/e2e-g2-query-result.txt`](docs/e2e-g2-query-result.txt)。端口：Kafka `:19092` · Flink UI `:8081` · Doris MySQL `:9030`（BE 须 Alive）。
+对照：[`docs/e2e-g2-query-result.txt`](docs/e2e-g2-query-result.txt)。
+
+![ads_dau_di query evidence](docs/evidence/ads_dau_di.png)
+端口：Kafka `:19092` · Flink UI `:8081` · Doris MySQL `:9030`（BE 须 Alive）。
 
 - DataPilot：https://github.com/tangyf07/DataPilot
 - SQLGuard：https://github.com/tangyf07/SQLGuard
