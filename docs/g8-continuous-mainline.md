@@ -73,13 +73,13 @@ resident materializer（常驻）：upsert-kafka → mysql INSERT/DELETE → Dor
 ## 怎么跑（WSL）
 
 ```bash
-cd /mnt/c/Users/tangy/source/repos/GameStream
+cd "$PWD"  # 仓库根目录
 # 栈已 up；若刚改 compose restart-strategy：
 # docker compose up -d --force-recreate jobmanager taskmanager
 
 cp scripts/g8_continuous_mainline.sh /tmp/g8.sh
 sed -i 's/\r$//' /tmp/g8.sh
-GAMESTREAM_ROOT=/mnt/c/Users/tangy/source/repos/GameStream bash /tmp/g8.sh
+GAMESTREAM_ROOT="$(cd "$(dirname "$0")/.." && pwd)" bash /tmp/g8.sh
 ```
 
 结果：[`g8-continuous-mainline-result.txt`](g8-continuous-mainline-result.txt)。

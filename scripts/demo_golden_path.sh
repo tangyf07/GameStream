@@ -6,7 +6,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 ROOT="${GAMESTREAM_ROOT:-$ROOT}"
 if [[ ! -f "$ROOT/docker-compose.yml" ]]; then
-  ROOT=/mnt/c/Users/tangy/source/repos/GameStream
+  echo "ERROR: cannot find GameStream repo root (set GAMESTREAM_ROOT or run from repo scripts/)." >&2
+  exit 1
 fi
 
 E2E="$ROOT/scripts/e2e_g2.sh"

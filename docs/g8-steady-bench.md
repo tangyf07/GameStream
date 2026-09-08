@@ -74,14 +74,14 @@ Reuses Flink sampler: [`scripts/g6_sample_metrics.py`](../scripts/g6_sample_metr
 ## How to reproduce (WSL)
 
 ```bash
-cd /mnt/c/Users/tangy/source/repos/GameStream
+cd "$PWD"  # 仓库根目录
 # free memory if available << 1Gi before medium
 docker compose ps
 
 cp scripts/g8_steady_bench.sh /tmp/g8s.sh && sed -i 's/\r$//' /tmp/g8s.sh
 # ensure helpers are LF (scripts sourced from GAMESTREAM_ROOT)
-GAMESTREAM_ROOT=/mnt/c/Users/tangy/source/repos/GameStream TIER=light bash /tmp/g8s.sh
-GAMESTREAM_ROOT=/mnt/c/Users/tangy/source/repos/GameStream TIER=medium bash /tmp/g8s.sh
+GAMESTREAM_ROOT="$(cd "$(dirname "$0")/.." && pwd)" TIER=light bash /tmp/g8s.sh
+GAMESTREAM_ROOT="$(cd "$(dirname "$0")/.." && pwd)" TIER=medium bash /tmp/g8s.sh
 ```
 
 Outputs:

@@ -35,12 +35,12 @@ flowchart LR
    python3 -m venv --without-pip ~/g7-venv
    curl -fsSL https://bootstrap.pypa.io/get-pip.py -o /tmp/get-pip.py
    ~/g7-venv/bin/python /tmp/get-pip.py
-   ~/g7-venv/bin/pip install -e "/mnt/c/Users/tangy/source/repos/sql-write-gate[mysql]"
+   ~/g7-venv/bin/pip install -e "<SQLGuard-repo-root>[mysql]"
    export PATH="$HOME/g7-venv/bin:$PATH"
    ```
 4. **启动 SQLGuard HTTP**（需 **≥1.1.1**；也可由 `scripts/g7_closed_loop.sh` 自动拉起）：
    ```bash
-   GS=/mnt/c/Users/tangy/source/repos/GameStream
+   GS=<repo-root>
    sql-write-gate serve --host 127.0.0.1 --port 8787 \
      --policy "$GS/config/sqlguard/g7_policy.yaml" \
      --catalog "$GS/config/sqlguard/g7_catalog.json" \
@@ -50,7 +50,7 @@ flowchart LR
 6. **跑闭环**：
    ```bash
    cp scripts/g7_closed_loop.sh /tmp/g7.sh && sed -i 's/\r$//' /tmp/g7.sh
-   GAMESTREAM_ROOT=/mnt/c/Users/tangy/source/repos/GameStream MODE=fixture bash /tmp/g7.sh
+   GAMESTREAM_ROOT="$(cd "$(dirname "$0")/.." && pwd)" MODE=fixture bash /tmp/g7.sh
    # 结果：docs/g7-closed-loop-result.txt
    ```
 

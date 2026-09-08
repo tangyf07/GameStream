@@ -1,12 +1,12 @@
 === GameStream 三仓固化验收 ===
 time=2026-09-07 18:40:14 CST
 mode=strict (strict|report-only)
-root=/mnt/c/Users/tangy/source/repos/GameStream
+root=<repo-root>
 result_file=docs/suite-acceptance-result.txt
 doris=mysql://root@127.0.0.1:9030/ads
 guard_url=http://127.0.0.1:8787
 
-[pin] verification baselines from /mnt/c/Users/tangy/source/repos/GameStream/versions.lock: GameStream=ed876e1 SQLGuard=7dc85dd@1.1.2 DataPilot=2541623 (suite_p0; baseline_p0=285202c)
+[pin] verification baselines from <repo-root>/versions.lock: GameStream=ed876e1 SQLGuard=7dc85dd@1.1.2 DataPilot=2541623 (suite_p0; baseline_p0=285202c)
 
 === 0) Pin verification (baselines vs actual full HEAD) ===
 [pin] GameStream actual_HEAD_full=a6136d1213120db21f058c8f440e2dff95280878 short=a6136d1 dirty=dirty+untracked=6; 3 files changed, 61 insertions(+), 365 deletions(-) pin_baseline=ed876e1
@@ -22,10 +22,10 @@ pin_DataPilot=OK:3aeb37a7e7ce57a216b2206aa49f44ef09364389:dirty+untracked=18; 54
 === a) G7 strict closed-loop (Doris backend) ===
 === GameStream G7 closed loop ===
 time=2026-09-07 18:40:18 CST
-root=/mnt/c/Users/tangy/source/repos/GameStream
+root=<repo-root>
 doris=mysql://root@127.0.0.1:9030/ads
-policy=/mnt/c/Users/tangy/source/repos/GameStream/config/sqlguard/g7_policy.yaml
-catalog=/mnt/c/Users/tangy/source/repos/GameStream/config/sqlguard/g7_catalog.json
+policy=<repo-root>/config/sqlguard/g7_policy.yaml
+catalog=<repo-root>/config/sqlguard/g7_catalog.json
 guard_url=http://127.0.0.1:8787
 mode=fixture
 
@@ -238,8 +238,8 @@ datapilot=BLOCK action=BLOCK
 --- BLOCK path: skip Doris execute ---
 
 === DONE 2026-09-07 18:40:24 CST ===
-result_file=/mnt/c/Users/tangy/source/repos/GameStream/docs/g7-closed-loop-result.txt
-OK: wrote /mnt/c/Users/tangy/source/repos/GameStream/docs/g7-closed-loop-result.txt
+result_file=<repo-root>/docs/g7-closed-loop-result.txt
+OK: wrote <repo-root>/docs/g7-closed-loop-result.txt
 --- g7 result excerpt ---
 === GameStream G7 closed loop ===
 === 0) Doris ADS probe ===
@@ -267,7 +267,7 @@ datapilot=BLOCK action=BLOCK
 gate_mode: http POST /v1/check
 datapilot=BLOCK action=BLOCK
 === DONE 2026-09-07 18:40:24 CST ===
-[STATUS] g7_closed_loop=PASS backend=doris detail=exit=0 rowcount=9 hive_gate=BLOCK ads_dau_di rows=9 (see /mnt/c/Users/tangy/source/repos/GameStream/docs/g7-closed-loop-result.txt)
+[STATUS] g7_closed_loop=PASS backend=doris detail=exit=0 rowcount=9 hive_gate=BLOCK ads_dau_di rows=9 (see <repo-root>/docs/g7-closed-loop-result.txt)
 
 === b) Cross-db hive.ads_dau_di BLOCK (SQLGuard 1.1.2) ===
 [b] starting temporary SQLGuard serve for cross-db check...
@@ -288,7 +288,7 @@ success 7dc85dd 34079952160 fix(v1.1.2) CI conclusion=success for pin
 mode=strict
 pin_baselines: GameStream=ed876e1 SQLGuard=7dc85dd@1.1.2 DataPilot=2541623
 pin_results(actual): GS=OK:a6136d1213120db21f058c8f440e2dff95280878:dirty+untracked=6; 3 files changed, 28 insertions(+), 538 deletions(-) SG=OK:7dc85dddf00c0b885b221b4f54359bf559d1fdda:dirty+untracked=1; 112 files changed, 0 insertions(+), 0 deletions(-) DP=OK:3aeb37a7e7ce57a216b2206aa49f44ef09364389:dirty+untracked=18; 54 files changed, 3225 insertions(+), 3225 deletions(-)
-  g7_closed_loop | PASS | required=1 | backend=doris | exit=0 rowcount=9 hive_gate=BLOCK ads_dau_di rows=9 (see /mnt/c/Users/tangy/source/repos/GameStream/docs/g7-closed-loop-result.txt)
+  g7_closed_loop | PASS | required=1 | backend=doris | exit=0 rowcount=9 hive_gate=BLOCK ads_dau_di rows=9 (see <repo-root>/docs/g7-closed-loop-result.txt)
   sqlguard_cross_db_hive | PASS | required=1 | backend=sqlguard-http | version=1.1.2 datapilot=BLOCK action=BLOCK rule_id=schema_hallucination
   datapilot_offline_p0 | PASS | required=1 | backend=offline-pytest | HEAD=3aeb37a entry=pytest -m suite_p0 -q :: .....................................                                    [100%] 37 passed, 30 deselected in 34.34s 
   datapilot_doris_g7 | PASS | required=0 | backend=doris | ..                                                                       [100%] 2 passed in 1.17s 
@@ -314,7 +314,7 @@ success 7dc85dd 34079952160 fix(v1.1.2) CI conclusion=success for pin
 mode=strict
 pin_baselines: GameStream=ed876e1 SQLGuard=7dc85dd@1.1.2 DataPilot=2541623
 pin_results(actual): GS=OK:a6136d1213120db21f058c8f440e2dff95280878:dirty+untracked=6; 3 files changed, 61 insertions(+), 365 deletions(-) SG=OK:7dc85dddf00c0b885b221b4f54359bf559d1fdda:dirty+untracked=1; 112 files changed, 0 insertions(+), 0 deletions(-) DP=OK:3aeb37a7e7ce57a216b2206aa49f44ef09364389:dirty+untracked=18; 54 files changed, 3225 insertions(+), 3225 deletions(-)
-  g7_closed_loop | PASS | required=1 | backend=doris | exit=0 rowcount=9 hive_gate=BLOCK ads_dau_di rows=9 (see /mnt/c/Users/tangy/source/repos/GameStream/docs/g7-closed-loop-result.txt)
+  g7_closed_loop | PASS | required=1 | backend=doris | exit=0 rowcount=9 hive_gate=BLOCK ads_dau_di rows=9 (see <repo-root>/docs/g7-closed-loop-result.txt)
   sqlguard_cross_db_hive | PASS | required=1 | backend=sqlguard-http | version=1.1.2 datapilot=BLOCK action=BLOCK rule_id=schema_hallucination
   datapilot_offline_p0 | PASS | required=1 | backend=offline-pytest | HEAD=3aeb37a entry=pytest -m suite_p0 -q :: .....................................                                    [100%] 37 passed, 30 deselected in 33.48s 
   datapilot_doris_g7 | PASS | required=0 | backend=doris | ..                                                                       [100%] 2 passed in 1.03s 

@@ -9,7 +9,7 @@ GameStream_repo = https://github.com/tangyf07/GameStream
 GameStream_note = verification baseline after strict-gate + G8 wording honesty; HEAD may be newer (ancestor OK)
 
 SQLGuard = 7dc85dd
-SQLGuard_repo = https://github.com/tangyf07/sql-write-gate
+SQLGuard_repo = https://github.com/tangyf07/SQLGuard
 SQLGuard_product = SQLGuard
 SQLGuard_package = sql-write-gate
 SQLGuard_version = 1.1.2
@@ -17,7 +17,7 @@ SQLGuard_note = v1.1.2; inherits 1.1.1 qualified identity (hive.ads_dau_di BLOCK
 SQLGuard_test = make test
 SQLGuard_test_optional = pytest -q tests/test_v110.py
 SQLGuard_routes = /v1/check|/v1/block|/v1/execute
-SQLGuard_ci = gh run list -R tangyf07/sql-write-gate --branch main --limit 3
+SQLGuard_ci = gh run list -R tangyf07/SQLGuard --branch main --limit 3
 
 DataPilot = 2541623
 DataPilot_repo = https://github.com/tangyf07/DataPilot
@@ -25,9 +25,9 @@ DataPilot_baseline_p0 = 285202c
 DataPilot_note = suite_p0 @2541623 (37 passed; supersets e3e603d); behavioral baseline includes 285202c P0
 
 [paths.wsl]
-path_GameStream = /mnt/c/Users/tangy/source/repos/GameStream
-path_SQLGuard = /mnt/c/Users/tangy/source/repos/sql-write-gate
-path_DataPilot = /mnt/c/Users/tangy/source/repos/DataPilot
+path_GameStream = <local-clone-root>
+path_SQLGuard = <local-SQLGuard-clone>
+path_DataPilot = <local-DataPilot-clone>
 
 [checks]
 g7_closed_loop = MODE=fixture bash scripts/g7_closed_loop.sh

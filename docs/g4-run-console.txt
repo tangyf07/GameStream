@@ -1,4 +1,4 @@
-[g4] root=/mnt/c/Users/tangy/source/repos/GameStream group=gamestream-g4-cp-v1 cp_wait=40s
+[g4] root=<repo-root> group=gamestream-g4-cp-v1 cp_wait=40s
 [g4] 1/10 check stack + checkpoint volume
 NAME          IMAGE                          COMMAND                  SERVICE       CREATED         STATUS                    PORTS
 gs-doris-be   apache/doris:be-3.0.4          "bash entry_point.sh"    doris-be      9 hours ago     Up 39 seconds             0.0.0.0:8040->8040/tcp, [::]:8040->8040/tcp

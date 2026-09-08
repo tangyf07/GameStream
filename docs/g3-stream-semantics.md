@@ -53,11 +53,11 @@ Row-level upsert-kafka dedup remains the production ODS pattern (`flink/sql/01_o
 ## How to run (WSL)
 
 ```bash
-cd /mnt/c/Users/tangy/source/repos/GameStream
+cd "$PWD"  # 仓库根目录
 # stack already up from G1/G2
 cp scripts/g3_stream_semantics.sh /tmp/g3_stream_semantics.sh
 sed -i 's/\r$//' /tmp/g3_stream_semantics.sh
-GAMESTREAM_ROOT=/mnt/c/Users/tangy/source/repos/GameStream bash /tmp/g3_stream_semantics.sh
+GAMESTREAM_ROOT="$(cd "$(dirname "$0")/.." && pwd)" bash /tmp/g3_stream_semantics.sh
 ```
 
 Overrides:

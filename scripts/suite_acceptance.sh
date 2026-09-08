@@ -2,7 +2,7 @@
 # GameStream 三仓固化验收（suite pins；G8 不在本脚本范围内）
 # Prefer CRLF-safe:
 #   cp scripts/suite_acceptance.sh /tmp/suite_acc.sh && sed -i 's/\r$//' /tmp/suite_acc.sh
-#   GAMESTREAM_ROOT=/mnt/c/Users/tangy/source/repos/GameStream bash /tmp/suite_acc.sh
+#   GAMESTREAM_ROOT="$(cd "$(dirname "$0")/.." && pwd)" bash /tmp/suite_acc.sh
 #
 # MODE=strict (default): required FAIL / pin MISMATCH → exit≠0;
 #   required SKIP → INCOMPLETE / exit≠0. Evaluate FAIL before SKIP.
@@ -12,7 +12,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 ROOT="${GAMESTREAM_ROOT:-$ROOT}"
 if [[ ! -f "$ROOT/docker-compose.yml" ]]; then
-  ROOT=/mnt/c/Users/tangy/source/repos/GameStream
+  echo "ERROR: cannot find GameStream repo root (set GAMESTREAM_ROOT or run from repo scripts/)." >&2
+  exit 1
 fi
 cd "$ROOT"
 
@@ -26,8 +27,8 @@ CATALOG="${CATALOG:-$ROOT/config/sqlguard/g7_catalog.json}"
 MODE="${MODE:-${SUITE_MODE:-strict}}"
 
 # Default sibling paths (WSL)
-SQLGUARD_REPO="${SQLGUARD_REPO:-/mnt/c/Users/tangy/source/repos/sql-write-gate}"
-DATAPILOT_REPO="${DATAPILOT_REPO:-/mnt/c/Users/tangy/source/repos/DataPilot}"
+SQLGUARD_REPO="${SQLGUARD_REPO:-../SQLGuard}"
+DATAPILOT_REPO="${DATAPILOT_REPO:-../DataPilot}"
 
 # Pin defaults = verification baselines (overridden by versions.lock [pins])
 # Results separately record actual full HEAD / dirty — may differ from pin.

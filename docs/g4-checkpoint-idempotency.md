@@ -97,14 +97,14 @@ Without dedup, batch1 would look like cnt=7 / sum=280.
 ## How to run (WSL)
 
 ```bash
-cd /mnt/c/Users/tangy/source/repos/GameStream
+cd "$PWD"  # 仓库根目录
 # After compose change: recreate Flink so /checkpoints is mounted
 docker compose up -d --force-recreate jobmanager taskmanager
 # wait until UI :8081 has slots
 
 cp scripts/g4_checkpoint_idempotency.sh /tmp/g4.sh
 sed -i 's/\r$//' /tmp/g4.sh
-GAMESTREAM_ROOT=/mnt/c/Users/tangy/source/repos/GameStream bash /tmp/g4.sh
+GAMESTREAM_ROOT="$(cd "$(dirname "$0")/.." && pwd)" bash /tmp/g4.sh
 ```
 
 Result paste: [`g4-checkpoint-idempotency-result.txt`](g4-checkpoint-idempotency-result.txt).

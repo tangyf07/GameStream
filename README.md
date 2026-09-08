@@ -97,7 +97,7 @@ bash scripts/e2e_g2.sh
 
 ```bash
 cp scripts/g3_stream_semantics.sh /tmp/g3.sh && sed -i 's/\r$//' /tmp/g3.sh
-GAMESTREAM_ROOT=/mnt/c/Users/tangy/source/repos/GameStream bash /tmp/g3.sh
+GAMESTREAM_ROOT="$(cd "$(dirname "$0")/.." && pwd)" bash /tmp/g3.sh
 ```
 
 细节：[`docs/g3-stream-semantics.md`](docs/g3-stream-semantics.md)（event time、watermark、迟到丢弃、`event_id` 去重）。**不含** G4–G6。
@@ -107,7 +107,7 @@ GAMESTREAM_ROOT=/mnt/c/Users/tangy/source/repos/GameStream bash /tmp/g3.sh
 ```bash
 docker compose up -d --force-recreate jobmanager taskmanager
 cp scripts/g4_checkpoint_idempotency.sh /tmp/g4.sh && sed -i 's/\r$//' /tmp/g4.sh
-GAMESTREAM_ROOT=/mnt/c/Users/tangy/source/repos/GameStream bash /tmp/g4.sh
+GAMESTREAM_ROOT="$(cd "$(dirname "$0")/.." && pwd)" bash /tmp/g4.sh
 ```
 
 细节：[`docs/g4-checkpoint-idempotency.md`](docs/g4-checkpoint-idempotency.md)。Doris = ALS + UNIQUE KEY，**不**宣称端到端 EO-2PC。
@@ -117,7 +117,7 @@ GAMESTREAM_ROOT=/mnt/c/Users/tangy/source/repos/GameStream bash /tmp/g4.sh
 ```bash
 docker compose up -d --force-recreate jobmanager taskmanager
 cp scripts/g5_fault_drill.sh /tmp/g5.sh && sed -i 's/\r$//' /tmp/g5.sh
-GAMESTREAM_ROOT=/mnt/c/Users/tangy/source/repos/GameStream bash /tmp/g5.sh
+GAMESTREAM_ROOT="$(cd "$(dirname "$0")/.." && pwd)" bash /tmp/g5.sh
 ```
 
 细节：[`docs/g5-fault-drill.md`](docs/g5-fault-drill.md)。**不**宣称端到端 EO-2PC。
@@ -126,7 +126,7 @@ GAMESTREAM_ROOT=/mnt/c/Users/tangy/source/repos/GameStream bash /tmp/g5.sh
 
 ```bash
 cp scripts/g6_bench.sh /tmp/g6.sh && sed -i 's/\r$//' /tmp/g6.sh
-GAMESTREAM_ROOT=/mnt/c/Users/tangy/source/repos/GameStream TIER=light bash /tmp/g6.sh
+GAMESTREAM_ROOT="$(cd "$(dirname "$0")/.." && pwd)" TIER=light bash /tmp/g6.sh
 ```
 
 细节：[`docs/g6-bench.md`](docs/g6-bench.md)。**数字只引用**已提交的 [`bench/results/g6_*.json`](bench/results/)。
@@ -135,7 +135,7 @@ GAMESTREAM_ROOT=/mnt/c/Users/tangy/source/repos/GameStream TIER=light bash /tmp/
 
 ```bash
 cp scripts/g7_closed_loop.sh /tmp/g7.sh && sed -i 's/\r$//' /tmp/g7.sh
-GAMESTREAM_ROOT=/mnt/c/Users/tangy/source/repos/GameStream MODE=fixture bash /tmp/g7.sh
+GAMESTREAM_ROOT="$(cd "$(dirname "$0")/.." && pwd)" MODE=fixture bash /tmp/g7.sh
 ```
 
 细节：[`docs/g7-closed-loop.md`](docs/g7-closed-loop.md)。消费**已有** ADS 行，不负责灌数；**不含** 新 UI / 编造指标。
@@ -145,12 +145,12 @@ GAMESTREAM_ROOT=/mnt/c/Users/tangy/source/repos/GameStream MODE=fixture bash /tm
 ```bash
 # continuous Flink upsert-kafka mainline (kill-TM proof; script materialize = fallback/dev)
 cp scripts/g8_continuous_mainline.sh /tmp/g8.sh && sed -i 's/\r$//' /tmp/g8.sh
-GAMESTREAM_ROOT=/mnt/c/Users/tangy/source/repos/GameStream bash /tmp/g8.sh
+GAMESTREAM_ROOT="$(cd "$(dirname "$0")/.." && pwd)" bash /tmp/g8.sh
 
 # resident materializer (primary continuous Doris visibility)
 ./scripts/run_g8_resident_materializer.sh start   # or: docker compose --profile materializer up -d
 cp scripts/g8_resident_materializer_accept.sh /tmp/g8r.sh && sed -i 's/\r$//' /tmp/g8r.sh
-GAMESTREAM_ROOT=/mnt/c/Users/tangy/source/repos/GameStream bash /tmp/g8r.sh
+GAMESTREAM_ROOT="$(cd "$(dirname "$0")/.." && pwd)" bash /tmp/g8r.sh
 ```
 
 细节：[`docs/g8-continuous-mainline.md`](docs/g8-continuous-mainline.md) + [`docs/g8-resident-materializer.md`](docs/g8-resident-materializer.md)。Flink：Kafka→清洗/`event_id` 去重→日 DAU+付费率→**upsert-kafka ALS+PK**；Doris：**常驻 materializer** UNIQUE KEY 物化（acceptance = produce+SELECT only）。脚本阶段 `materialize_doris` 仅 **fallback/dev**。同 job kill-TM 恢复不双计；`tm_start_fallback=1` / chk-8 精确 restore 未单独证明。Flink JDBC MySQL upsert 方言 Doris 拒收故不用；**at-least-once + UNIQUE KEY**；**不**宣称 EO-2PC。勿编造 bench 数字。
@@ -159,9 +159,9 @@ GAMESTREAM_ROOT=/mnt/c/Users/tangy/source/repos/GameStream bash /tmp/g8r.sh
 
 ```bash
 cp scripts/g8_steady_bench.sh /tmp/g8s.sh && sed -i 's/\r$//' /tmp/g8s.sh
-GAMESTREAM_ROOT=/mnt/c/Users/tangy/source/repos/GameStream TIER=light bash /tmp/g8s.sh
+GAMESTREAM_ROOT="$(cd "$(dirname "$0")/.." && pwd)" TIER=light bash /tmp/g8s.sh
 # optional medium (only if light stable / mem ok):
-# GAMESTREAM_ROOT=/mnt/c/Users/tangy/source/repos/GameStream TIER=medium bash /tmp/g8s.sh
+# GAMESTREAM_ROOT="$(cd "$(dirname "$0")/.." && pwd)" TIER=medium bash /tmp/g8s.sh
 ```
 
 细节：[`docs/g8-steady-bench.md`](docs/g8-steady-bench.md)。**数字只引用**已提交的 [`bench/results/g8_*.json`](bench/results/)。表述：两档各 2 次批次探针，**当时脚本物化路径**下约 **39–41s 可查**（n=2≈max，**勿卖 P95**；含 console-consumer 串行开销）。Flink in/s = **sum across operators，非 source 吞吐**。**不**把 G6 Kafka-only 数字标成 G8 Doris-visible。连续 Doris 可见性见常驻 materializer（[`docs/g8-resident-materializer.md`](docs/g8-resident-materializer.md)）；steady 脚本物化为历史对照 / fallback。

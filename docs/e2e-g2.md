@@ -37,7 +37,7 @@ DDL: `sql/ddl/doris_ads_g2.sql` (`replication_num=1`, no dynamic_partition).
 ## How to run
 
 ```bash
-cd /mnt/c/Users/tangy/source/repos/GameStream
+cd "$PWD"  # 仓库根目录
 docker compose up -d   # if not already
 bash scripts/e2e_g2.sh
 # overrides: PLAYERS=500 EVENTS=3000 DAYS=1 bash scripts/e2e_g2.sh

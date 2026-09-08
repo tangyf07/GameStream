@@ -34,7 +34,7 @@ Acceptance scripts **produce + SELECT only** — they must **not** drive the wri
 ### A) Standalone resident process (preferred on ~7.6Gi WSL)
 
 ```bash
-cd /mnt/c/Users/tangy/source/repos/GameStream
+cd "$PWD"  # 仓库根目录
 python3 -m pip install -r requirements-materializer.txt
 
 # foreground
@@ -70,7 +70,7 @@ Compose uses in-network `kafka:9092` + `doris-fe:9030`. Mem limit 256m.
 # stack up (Kafka + Flink JM/TM + Doris FE/BE); ~7.6Gi light path
 cp scripts/g8_resident_materializer_accept.sh /tmp/g8r.sh
 sed -i 's/\r$//' /tmp/g8r.sh
-GAMESTREAM_ROOT=/mnt/c/Users/tangy/source/repos/GameStream bash /tmp/g8r.sh
+GAMESTREAM_ROOT="$(cd "$(dirname "$0")/.." && pwd)" bash /tmp/g8r.sh
 ```
 
 Proves:
