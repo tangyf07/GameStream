@@ -12,25 +12,28 @@ flowchart LR
   M --> D[Doris]
 ```
 
-**现场 6 步演示（WSL + Docker）：** [`docs/golden-path-demo.md`](docs/golden-path-demo.md)
+### 现场 6 步（固定顺序）
+
+| # | 节拍 | 用什么（已有脚本，不扩功能） |
+|---|------|------------------------------|
+| 1 | **正常** | G2 E2E：`scripts/e2e_g2.sh` / `scripts/demo_golden_path.sh` → produce → Flink → Doris |
+| 2 | **重复** | G3 `event_id` 去重（可选演练）：[`docs/g3-stream-semantics.md`](docs/g3-stream-semantics.md) |
+| 3 | **迟到** | G3 watermark 迟到丢弃（可选，同 G3 脚本） |
+| 4 | **kill TM** | G5：`scripts/g5_fault_drill.sh`（`docker kill gs-flink-tm`） |
+| 5 | **恢复** | G5：checkpoint + restart-strategy 同 job 拉回；计数不双计 |
+| 6 | **对 DAU** | G2 查 `ads.ads_dau_di`（`metric_id='ads_dau_di' AND dau>0`） |
+
+完整命令与成功信号：[`docs/golden-path-demo.md`](docs/golden-path-demo.md)。招聘方第一屏只认这条链路 + 上表；G2–G8 长文见附录。
 
 ```bash
-# 1) 起栈
+# 起栈 + 正常 + 对 DAU（骨干）
 docker compose up -d
-
-# 2–6) 一键 G2（produce → Flink g2_kafka_to_doris.sql → 查 ads_dau_di）
-cp scripts/e2e_g2.sh /tmp/e2e_g2.sh && sed -i 's/\r$//' /tmp/e2e_g2.sh
-GAMESTREAM_ROOT=/mnt/c/Users/tangy/source/repos/GameStream bash /tmp/e2e_g2.sh
-# 或：bash scripts/demo_golden_path.sh
-
-# 验收查询（演示只认这一个 metric）
+bash scripts/demo_golden_path.sh   # 或 e2e_g2.sh（WSL：先 cp /tmp + sed CRLF）
 docker exec gs-doris-fe mysql -h127.0.0.1 -P9030 -uroot -e \
   "SELECT dt, server_id, dau, metric_id FROM ads.ads_dau_di WHERE metric_id='ads_dau_di' AND dau>0 ORDER BY dt, server_id;"
 ```
 
-对照：[`docs/e2e-g2-query-result.txt`](docs/e2e-g2-query-result.txt)（期望 `metric_id=ads_dau_di` 且 `dau>0`）。骨干文档：[`docs/e2e-g2.md`](docs/e2e-g2.md)。
-
-端口：Kafka `:19092` · Flink UI `:8081` · Doris MySQL `:9030`（BE 须 Alive）。
+对照：[`docs/e2e-g2-query-result.txt`](docs/e2e-g2-query-result.txt)。端口：Kafka `:19092` · Flink UI `:8081` · Doris MySQL `:9030`（BE 须 Alive）。
 
 - DataPilot：https://github.com/tangyf07/DataPilot
 - SQLGuard：https://github.com/tangyf07/SQLGuard
@@ -46,7 +49,7 @@ docker exec gs-doris-fe mysql -h127.0.0.1 -P9030 -uroot -e \
 | OLAP | Parquet + DuckDB | **Doris** FE/BE（HTTP `:8030` / MySQL `:9030`） |
 | 端到端 | lite ADS 在 DuckDB | **G2 已验证**：Simulator→Kafka→Flink→Doris ADS |
 
-**勿夸大：** G1 = 组件可起 + 端口可达。**G2 = 有界 E2E**（batch + bounded Kafka → 一次性 Doris ADS，可复跑 `e2e_g2.sh`）。**G3–G5 = 独立演练**；**G8 已把它们折进同一条持续 upsert-kafka ADS 主流水线**；**连续 Doris 可见性由常驻 materializer 负责**（见 [`docs/g8-continuous-mainline.md`](docs/g8-continuous-mainline.md)、[`docs/g8-resident-materializer.md`](docs/g8-resident-materializer.md)）。未宣称 EO-2PC、K8s/Spark/Iceberg 生产部署、编造 SLA。lite 与 prod **同口径**（同一套 `metric_id`）。G3–G8 / 三仓验收见附录。
+**勿夸大：** G1 = 组件可起。**G2 = 有界 E2E**（`ads_dau_di`）。**G3–G5 = 独立演练**（重复/迟到/kill TM/恢复）；G8 持续主流水线见附录。未宣称 EO-2PC、K8s/Spark/Iceberg 生产部署、编造 SLA。lite 与 prod **同口径**。
 
 ## 如何跑 / 测试（lite）
 
@@ -88,7 +91,7 @@ bash scripts/e2e_g2.sh
 
 细节：[`docs/e2e-g2.md`](docs/e2e-g2.md)。演示入口：[`docs/golden-path-demo.md`](docs/golden-path-demo.md)。
 
-### G3 流语义（WSL，小流量）
+### G3 流语义（WSL，小流量）— 重复 / 迟到
 
 ```bash
 cp scripts/g3_stream_semantics.sh /tmp/g3.sh && sed -i 's/\r$//' /tmp/g3.sh
@@ -107,7 +110,7 @@ GAMESTREAM_ROOT=/mnt/c/Users/tangy/source/repos/GameStream bash /tmp/g4.sh
 
 细节：[`docs/g4-checkpoint-idempotency.md`](docs/g4-checkpoint-idempotency.md)。Doris = ALS + UNIQUE KEY，**不**宣称端到端 EO-2PC。
 
-### G5 故障演练（WSL，kill TaskManager）
+### G5 故障演练（WSL，kill TaskManager）— kill TM / 恢复
 
 ```bash
 docker compose up -d --force-recreate jobmanager taskmanager
