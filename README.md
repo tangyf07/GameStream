@@ -1,5 +1,7 @@
 # GameStream
 
+> **核心实现是 Flink SQL / 作业与指标口径（Python/SQL），不是 Shell 胶水。** 仓库里大量 `scripts/*.sh` 只是演示编排；GitHub 语言条可能显示 Shell，以本说明与 `pipeline/`、`flink/`、指标 SQL 为准。
+
 一句话：游戏玩家行为 **事件 → Kafka → Flink → `ads_dau_di` → Doris** 的实时指标链路（lite 可用 DuckDB 同口径）。给 [DataPilot](https://github.com/tangyf07/DataPilot) 问数、经 [SQLGuard](https://github.com/tangyf07/SQLGuard) 门禁消费。
 
 ## Golden Path
