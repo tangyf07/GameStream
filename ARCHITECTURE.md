@@ -24,5 +24,5 @@ No Docker on target Windows laptop; DuckDB embeds OLAP SQL close enough to demon
 
 ## Deep dive
 
-Kafka/Flink deep dive → `docs/flink-kafka-deep-dive.md`; 二面 FAQ → `docs/interview-faq.md`; checkpoint 示例 → `flink/conf/checkpoint-recommendations.yaml`.  
+Kafka/Flink deep dive → `docs/flink-kafka-deep-dive.md`; interview notes → `docs/interview-notes.md` / `docs/interview-faq.md`; checkpoint 示例 → `flink/conf/checkpoint-recommendations.yaml`.  
 Doris ADS DDL → `sql/ddl/doris_ads.sql`. Iceberg → `sql/ddl/iceberg_notes.md`.
