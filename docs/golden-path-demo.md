@@ -6,7 +6,7 @@
 
 六节拍固定：**正常 → 重复 → 迟到 → kill TM → 恢复 → 对 DAU**。映射到仓库**已有**脚本，不引入新 pipeline / 新 metric。
 
-前置：在 WSL 里 `cd` 到仓库（例：`/mnt/c/Users/tangy/source/repos/GameStream`）。
+前置：在 WSL 里 `cd` 到仓库（仓库根目录）。
 
 ```bash
 docker compose up -d
@@ -23,7 +23,7 @@ docker compose up -d
 
 ```bash
 cp scripts/e2e_g2.sh /tmp/e2e_g2.sh && sed -i 's/\r$//' /tmp/e2e_g2.sh
-GAMESTREAM_ROOT=/mnt/c/Users/tangy/source/repos/GameStream bash /tmp/e2e_g2.sh
+GAMESTREAM_ROOT="$(cd "$(dirname "$0")/.." && pwd)" bash /tmp/e2e_g2.sh
 # 薄封装：bash scripts/demo_golden_path.sh
 # 可选：PLAYERS=500 EVENTS=3000 DAYS=1
 ```
@@ -40,7 +40,7 @@ GAMESTREAM_ROOT=/mnt/c/Users/tangy/source/repos/GameStream bash /tmp/e2e_g2.sh
 
 ```bash
 cp scripts/g3_stream_semantics.sh /tmp/g3.sh && sed -i 's/\r$//' /tmp/g3.sh
-GAMESTREAM_ROOT=/mnt/c/Users/tangy/source/repos/GameStream bash /tmp/g3.sh
+GAMESTREAM_ROOT="$(cd "$(dirname "$0")/.." && pwd)" bash /tmp/g3.sh
 ```
 
 成功信号：W1 `event_cnt=7`（不是 8）→ dup 只计一次。细节：[`g3-stream-semantics.md`](g3-stream-semantics.md)。生产 ODS 模式见 `flink/sql/01_ods_clean.sql`（upsert-kafka + `event_id`）。
@@ -64,7 +64,7 @@ GAMESTREAM_ROOT=/mnt/c/Users/tangy/source/repos/GameStream bash /tmp/g3.sh
 ```bash
 docker compose up -d --force-recreate jobmanager taskmanager
 cp scripts/g5_fault_drill.sh /tmp/g5.sh && sed -i 's/\r$//' /tmp/g5.sh
-GAMESTREAM_ROOT=/mnt/c/Users/tangy/source/repos/GameStream bash /tmp/g5.sh
+GAMESTREAM_ROOT="$(cd "$(dirname "$0")/.." && pwd)" bash /tmp/g5.sh
 ```
 
 成功信号：脚本内出现 `docker kill gs-flink-tm`；Flink UI 同 job 进入 RESTARTING。细节：[`g5-fault-drill.md`](g5-fault-drill.md)。（G4 是 cancel→手动 restore；G5 才是 kill TM + restart-strategy。）

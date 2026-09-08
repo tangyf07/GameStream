@@ -58,7 +58,7 @@ cp scripts/g6_sample_metrics.py /tmp/g6_sample_metrics.py && sed -i 's/\r$//' /t
 cp scripts/g6_gen_and_produce.py /tmp/g6_gen_and_produce.py && sed -i 's/\r$//' /tmp/g6_gen_and_produce.py
 # scripts resolve via GAMESTREAM_ROOT; ensure helpers exist in repo scripts/
 
-GAMESTREAM_ROOT=/mnt/c/Users/tangy/source/repos/GameStream \
+GAMESTREAM_ROOT="$(cd "$(dirname "$0")/.." && pwd)" \
   TIER=light \
   bash /tmp/g6.sh
 ```
@@ -66,7 +66,7 @@ GAMESTREAM_ROOT=/mnt/c/Users/tangy/source/repos/GameStream \
 Optional medium:
 
 ```bash
-GAMESTREAM_ROOT=/mnt/c/Users/tangy/source/repos/GameStream TIER=medium bash /tmp/g6.sh
+GAMESTREAM_ROOT="$(cd "$(dirname "$0")/.." && pwd)" TIER=medium bash /tmp/g6.sh
 ```
 
 Outputs:

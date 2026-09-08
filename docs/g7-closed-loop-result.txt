@@ -1,9 +1,9 @@
 === GameStream G7 closed loop ===
 time=2026-09-07 18:40:18 CST
-root=/mnt/c/Users/tangy/source/repos/GameStream
+root=<repo-root>
 doris=mysql://root@127.0.0.1:9030/ads
-policy=/mnt/c/Users/tangy/source/repos/GameStream/config/sqlguard/g7_policy.yaml
-catalog=/mnt/c/Users/tangy/source/repos/GameStream/config/sqlguard/g7_catalog.json
+policy=<repo-root>/config/sqlguard/g7_policy.yaml
+catalog=<repo-root>/config/sqlguard/g7_catalog.json
 guard_url=http://127.0.0.1:8787
 mode=fixture
 
@@ -216,4 +216,4 @@ datapilot=BLOCK action=BLOCK
 --- BLOCK path: skip Doris execute ---
 
 === DONE 2026-09-07 18:40:24 CST ===
-result_file=/mnt/c/Users/tangy/source/repos/GameStream/docs/g7-closed-loop-result.txt
+result_file=<repo-root>/docs/g7-closed-loop-result.txt

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-ROOT=/mnt/c/Users/tangy/source/repos/GameStream
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cp "$ROOT/scripts/g6_bench.sh" /tmp/g6.sh
 sed -i 's/\r$//' /tmp/g6.sh
 # also ensure helpers have no CRLF

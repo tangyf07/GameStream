@@ -1,5 +1,5 @@
 {
-  "poll_file": "/mnt/c/Users/tangy/source/repos/GameStream/bench/results/g6_raw_medium_20260907T020915Z/poll.json",
+  "poll_file": "<repo-root>/bench/results/g6_raw_medium_20260907T020915Z/poll.json",
   "n_samples": 25,
   "flink_in_rate_per_s": {
     "status": "未测到",

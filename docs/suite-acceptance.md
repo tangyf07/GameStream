@@ -18,7 +18,7 @@
 路径（WSL 典型）：
 
 ```
-/mnt/c/Users/tangy/source/repos/{GameStream,sql-write-gate,DataPilot}
+<sibling-repos>/{GameStream,sql-write-gate,DataPilot}
 ```
 
 ## 怎么跑
@@ -26,9 +26,9 @@
 ```bash
 # CRLF-safe（WSL）
 cp scripts/suite_acceptance.sh /tmp/suite_acc.sh && sed -i 's/\r$//' /tmp/suite_acc.sh
-GAMESTREAM_ROOT=/mnt/c/Users/tangy/source/repos/GameStream \
-  SQLGUARD_REPO=/mnt/c/Users/tangy/source/repos/sql-write-gate \
-  DATAPILOT_REPO=/mnt/c/Users/tangy/source/repos/DataPilot \
+GAMESTREAM_ROOT="$(cd "$(dirname "$0")/.." && pwd)" \
+  SQLGUARD_REPO=<SQLGuard-repo-root> \
+  DATAPILOT_REPO=<DataPilot-repo-root> \
   bash /tmp/suite_acc.sh
 # 报告：docs/suite-acceptance-result.txt
 ```

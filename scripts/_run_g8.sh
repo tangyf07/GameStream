@@ -1,6 +1,6 @@
 #!/bin/bash
 set -euo pipefail
-SRC=/mnt/c/Users/tangy/source/repos/GameStream
+SRC=<repo-root>
 cp "$SRC/scripts/g8_continuous_mainline.sh" /tmp/g8.sh
 sed -i 's/\r$//' /tmp/g8.sh
 export GAMESTREAM_ROOT="$SRC"

@@ -1,5 +1,5 @@
 {
-  "poll_file": "/mnt/c/Users/tangy/source/repos/GameStream/bench/results/g8_raw_light_20260907T043148Z/rounds/round_2/poll.json",
+  "poll_file": "<repo-root>/bench/results/g8_raw_light_20260907T043148Z/rounds/round_2/poll.json",
   "n_samples": 19,
   "flink_in_rate_per_s": {
     "status": "ok",

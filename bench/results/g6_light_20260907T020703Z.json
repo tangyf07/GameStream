@@ -9,7 +9,7 @@
   "topic_in": "gamestream.g6.events",
   "topic_out": "gamestream.g6.out",
   "sink_path": "Kafka only (Doris skipped for G6 measured bench; Alive=true)",
-  "raw_dir": "/mnt/c/Users/tangy/source/repos/GameStream/bench/results/g6_raw_light_20260907T020703Z",
+  "raw_dir": "<repo-root>/bench/results/g6_raw_light_20260907T020703Z",
   "definitions": {
     "throughput_input": "events / produce_wall_sec (console-producer wall clock)",
     "throughput_flink": "Flink REST job metrics numRecordsInPerSecond (sampled)",

@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 # GameStream G7 closed loop: NL/Agent (DataPilot or fixtures) → SQLGuard → Doris ADS
 # Prefer: cp scripts/g7_closed_loop.sh /tmp/g7.sh && sed -i 's/\r$//' /tmp/g7.sh \
-#   && GAMESTREAM_ROOT=/mnt/c/Users/tangy/source/repos/GameStream bash /tmp/g7.sh
+#   && GAMESTREAM_ROOT="$(cd "$(dirname "$0")/.." && pwd)" bash /tmp/g7.sh
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 ROOT="${GAMESTREAM_ROOT:-$ROOT}"
 if [[ ! -f "$ROOT/docker-compose.yml" ]]; then
-  ROOT=/mnt/c/Users/tangy/source/repos/GameStream
+  echo "ERROR: cannot find GameStream repo root (set GAMESTREAM_ROOT or run from repo scripts/)." >&2
+  exit 1
 fi
 cd "$ROOT"
 
@@ -16,8 +17,8 @@ GUARD_URL="${GUARD_URL:-http://127.0.0.1:8787}"
 DORIS_URL="${DORIS_URL:-mysql://root@127.0.0.1:9030/ads}"
 POLICY="${POLICY:-$ROOT/config/sqlguard/g7_policy.yaml}"
 CATALOG="${CATALOG:-$ROOT/config/sqlguard/g7_catalog.json}"
-SQLGUARD_REPO="${SQLGUARD_REPO:-/mnt/c/Users/tangy/source/repos/sql-write-gate}"
-DATAPILOT_REPO="${DATAPILOT_REPO:-/mnt/c/Users/tangy/source/repos/DataPilot}"
+SQLGUARD_REPO="${SQLGUARD_REPO:-../SQLGuard}"
+DATAPILOT_REPO="${DATAPILOT_REPO:-../DataPilot}"
 MODE="${MODE:-auto}"   # auto | datapilot | fixture
 START_GUARD="${START_GUARD:-1}"
 GUARD_PID=""

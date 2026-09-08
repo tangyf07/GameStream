@@ -79,14 +79,14 @@ Same money shape as G4 (different `event_id` / `player_id` prefix):
 ## How to run (WSL)
 
 ```bash
-cd /mnt/c/Users/tangy/source/repos/GameStream
+cd "$PWD"  # 仓库根目录
 # After compose change: recreate Flink so restart-strategy is live
 docker compose up -d --force-recreate jobmanager taskmanager
 # wait until UI :8081 has slots (≥1)
 
 cp scripts/g5_fault_drill.sh /tmp/g5.sh
 sed -i 's/\r$//' /tmp/g5.sh
-GAMESTREAM_ROOT=/mnt/c/Users/tangy/source/repos/GameStream bash /tmp/g5.sh
+GAMESTREAM_ROOT="$(cd "$(dirname "$0")/.." && pwd)" bash /tmp/g5.sh
 ```
 
 Prefer **`docker kill gs-flink-tm`** (script default). Do **not** casually kill Doris/Kafka on ~7.6Gi.

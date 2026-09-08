@@ -9,7 +9,7 @@
 | 日期 | 2026-09-07（UTC+8） |
 | Docker | Engine **29.7.2** · Compose **v5.5.0** |
 | 宿主内存 | ~**7.6Gi**（起栈后 available ~3.6Gi） |
-| 仓库路径 | `/mnt/c/Users/tangy/source/repos/GameStream` |
+| 仓库路径 | `<repo-root>` |
 | 镜像源 | daemon.json mirrors：daocloud / 1ms.run / tencent |
 
 ### 服务结果（`docker compose up -d` 后探测）
@@ -38,7 +38,7 @@
 ### 复现
 
 ```bash
-cd /mnt/c/Users/tangy/source/repos/GameStream
+cd "$PWD"  # 仓库根目录
 docker compose up -d
 docker compose ps
 curl -s http://127.0.0.1:8081/overview

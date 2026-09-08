@@ -1,5 +1,5 @@
 ===== G8 resident Doris materializer acceptance =====
-host=tangyf root=/mnt/c/Users/tangy/source/repos/GameStream dt=2026-09-07 server_id=1
+host=tangyf root=<repo-root> dt=2026-09-07 server_id=1
 topics in=gamestream.g8r.ods.events dau=gamestream.g8r.ads_dau pay=gamestream.g8r.ads_pay_rate
 flink_group=gamestream-g8r-ads-v1 mat_group=gamestream-g8r-doris-materializer
 honesty: acceptance = produce + Doris SELECT only; NO script materialize in wait path
@@ -70,7 +70,7 @@ materializer_log_tail:
 2026-09-07 19:02:37,995 INFO g8.doris_materializer applied UPSERT dau 2026-09-07/1 dau=7 topic=gamestream.g8r.ads_dau part=0 off=6
 2026-09-07 19:02:38,042 INFO g8.doris_materializer applied UPSERT dau 2026-09-07/1 dau=8 topic=gamestream.g8r.ads_dau part=0 off=7
 [g8r] materializer killed pid=26736
-result_file=/mnt/c/Users/tangy/source/repos/GameStream/docs/g8-resident-materializer-result.txt
+result_file=<repo-root>/docs/g8-resident-materializer-result.txt
 
 ===== MEASURED (cleaned) =====
 host=tangyf Asia/Shanghai 2026-09-07 ~19:02
