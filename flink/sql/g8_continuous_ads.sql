@@ -5,14 +5,14 @@
 -- Sink honesty (important):
 --   Flink JDBC MySQL upsert dialect emits `INSERT ... ON DUPLICATE KEY UPDATE`,
 --   which Doris FE rejects. Continuous Flink sink is therefore upsert-kafka
---   (ALS + PK). Proof script materializes latest rows into Doris ADS via
---   plain INSERT on UNIQUE KEY (same ALS replace semantics as G2 JDBC append).
---   NOT end-to-end EO-2PC.
+--   (ALS + PK). Doris UNIQUE KEY visibility is provided by the resident
+--   materializer (pipeline/doris_ads_materializer.py). Script-phase
+--   materialize_doris remains fallback/dev only. NOT end-to-end EO-2PC.
 --
 -- Pipeline:
 --   Kafka ODS → clean → Rank(event_id) → unbounded daily GROUP BY
 --     → upsert-kafka gamestream.g8.ads_dau / gamestream.g8.ads_pay_rate
---   script: mysql INSERT → ads.ads_dau_di / ads.ads_pay_rate_di (continuous)
+--   resident materializer → ads.ads_dau_di / ads.ads_pay_rate_di
 -- =============================================================================
 
 SET 'execution.runtime-mode' = 'streaming';

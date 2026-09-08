@@ -1,6 +1,6 @@
 # GameStream
 
-一句话：游戏玩家行为 **事件 → Kafka → Flink → `ads_dau_di` → Doris** 的实时指标链路（lite 可用 DuckDB 同口径）。给 [DataPilot](https://github.com/tangyf07/DataPilot) 问数、经 [sql-write-gate](https://github.com/tangyf07/sql-write-gate)（SQLGuard）门禁消费。
+一句话：游戏玩家行为 **事件 → Kafka → Flink → `ads_dau_di` → Doris** 的实时指标链路（lite 可用 DuckDB 同口径）。给 [DataPilot](https://github.com/tangyf07/DataPilot) 问数、经 [SQLGuard](https://github.com/tangyf07/SQLGuard) 门禁消费。
 
 ## Golden Path
 
@@ -25,15 +25,15 @@ GAMESTREAM_ROOT=/mnt/c/Users/tangy/source/repos/GameStream bash /tmp/e2e_g2.sh
 
 # 验收查询（演示只认这一个 metric）
 docker exec gs-doris-fe mysql -h127.0.0.1 -P9030 -uroot -e \
-  "SELECT dt, server_id, dau, metric_id FROM ads.ads_dau_di ORDER BY dt, server_id;"
+  "SELECT dt, server_id, dau, metric_id FROM ads.ads_dau_di WHERE metric_id='ads_dau_di' AND dau>0 ORDER BY dt, server_id;"
 ```
 
-对照：[`docs/e2e-g2-query-result.txt`](docs/e2e-g2-query-result.txt)（期望 `metric_id=ads_dau_di`）。骨干文档：[`docs/e2e-g2.md`](docs/e2e-g2.md)。
+对照：[`docs/e2e-g2-query-result.txt`](docs/e2e-g2-query-result.txt)（期望 `metric_id=ads_dau_di` 且 `dau>0`）。骨干文档：[`docs/e2e-g2.md`](docs/e2e-g2.md)。
 
 端口：Kafka `:19092` · Flink UI `:8081` · Doris MySQL `:9030`（BE 须 Alive）。
 
 - DataPilot：https://github.com/tangyf07/DataPilot
-- SQLGuard（sql-write-gate）：https://github.com/tangyf07/sql-write-gate
+- SQLGuard：https://github.com/tangyf07/SQLGuard
 - 指标契约：[`docs/datapilot_contract.md`](docs/datapilot_contract.md) · [`config/metrics.yaml`](config/metrics.yaml)
 
 ## 写死口径：lite vs Docker 组件
@@ -46,7 +46,7 @@ docker exec gs-doris-fe mysql -h127.0.0.1 -P9030 -uroot -e \
 | OLAP | Parquet + DuckDB | **Doris** FE/BE（HTTP `:8030` / MySQL `:9030`） |
 | 端到端 | lite ADS 在 DuckDB | **G2 已验证**：Simulator→Kafka→Flink→Doris ADS |
 
-**勿夸大：** G2 = 有界 E2E（batch + bounded Kafka → 一次性 Doris ADS）。未宣称 EO-2PC、K8s/Spark/Iceberg 生产部署、编造 SLA。lite 与 prod **同口径**（同一套 `metric_id`）。G3–G8 / 三仓验收见附录。
+**勿夸大：** G1 = 组件可起 + 端口可达。**G2 = 有界 E2E**（batch + bounded Kafka → 一次性 Doris ADS，可复跑 `e2e_g2.sh`）。**G3–G5 = 独立演练**；**G8 已把它们折进同一条持续 upsert-kafka ADS 主流水线**；**连续 Doris 可见性由常驻 materializer 负责**（见 [`docs/g8-continuous-mainline.md`](docs/g8-continuous-mainline.md)、[`docs/g8-resident-materializer.md`](docs/g8-resident-materializer.md)）。未宣称 EO-2PC、K8s/Spark/Iceberg 生产部署、编造 SLA。lite 与 prod **同口径**（同一套 `metric_id`）。G3–G8 / 三仓验收见附录。
 
 ## 如何跑 / 测试（lite）
 
@@ -135,23 +135,31 @@ GAMESTREAM_ROOT=/mnt/c/Users/tangy/source/repos/GameStream MODE=fixture bash /tm
 
 细节：[`docs/g7-closed-loop.md`](docs/g7-closed-loop.md)。消费**已有** ADS 行，不负责灌数；**不含** 新 UI / 编造指标。
 
-### G8 单一持续 Flink 作业＋脚本阶段物化 Doris（WSL）
+### G8 单一持续 Flink 作业＋常驻 Doris materializer（WSL）
 
 ```bash
+# continuous Flink upsert-kafka mainline (kill-TM proof; script materialize = fallback/dev)
 cp scripts/g8_continuous_mainline.sh /tmp/g8.sh && sed -i 's/\r$//' /tmp/g8.sh
 GAMESTREAM_ROOT=/mnt/c/Users/tangy/source/repos/GameStream bash /tmp/g8.sh
+
+# resident materializer (primary continuous Doris visibility)
+./scripts/run_g8_resident_materializer.sh start   # or: docker compose --profile materializer up -d
+cp scripts/g8_resident_materializer_accept.sh /tmp/g8r.sh && sed -i 's/\r$//' /tmp/g8r.sh
+GAMESTREAM_ROOT=/mnt/c/Users/tangy/source/repos/GameStream bash /tmp/g8r.sh
 ```
 
-细节：[`docs/g8-continuous-mainline.md`](docs/g8-continuous-mainline.md)。**单一持续 Flink 作业＋脚本阶段物化 Doris**：Kafka→清洗/`event_id` 去重→日 DAU+付费率→upsert-kafka→**脚本** UNIQUE KEY 物化；同 job kill-TM 恢复不双计。对照 G2 有界跑。Flink JDBC MySQL upsert 方言 Doris 拒收故不用；**at-least-once + UNIQUE KEY**；**不**宣称 EO-2PC。
+细节：[`docs/g8-continuous-mainline.md`](docs/g8-continuous-mainline.md) + [`docs/g8-resident-materializer.md`](docs/g8-resident-materializer.md)。Flink：Kafka→清洗/`event_id` 去重→日 DAU+付费率→**upsert-kafka ALS+PK**；Doris：**常驻 materializer** UNIQUE KEY 物化（acceptance = produce+SELECT only）。脚本阶段 `materialize_doris` 仅 **fallback/dev**。同 job kill-TM 恢复不双计；`tm_start_fallback=1` / chk-8 精确 restore 未单独证明。Flink JDBC MySQL upsert 方言 Doris 拒收故不用；**at-least-once + UNIQUE KEY**；**不**宣称 EO-2PC。勿编造 bench 数字。
 
 ### G8 小规模分块负载与批次可见性验证（WSL）
 
 ```bash
 cp scripts/g8_steady_bench.sh /tmp/g8s.sh && sed -i 's/\r$//' /tmp/g8s.sh
 GAMESTREAM_ROOT=/mnt/c/Users/tangy/source/repos/GameStream TIER=light bash /tmp/g8s.sh
+# optional medium (only if light stable / mem ok):
+# GAMESTREAM_ROOT=/mnt/c/Users/tangy/source/repos/GameStream TIER=medium bash /tmp/g8s.sh
 ```
 
-细节：[`docs/g8-steady-bench.md`](docs/g8-steady-bench.md)。**数字只引用**已提交的 [`bench/results/g8_*.json`](bench/results/)。勿把 G6 Kafka-only 数字标成 G8 Doris-visible。
+细节：[`docs/g8-steady-bench.md`](docs/g8-steady-bench.md)。**数字只引用**已提交的 [`bench/results/g8_*.json`](bench/results/)。表述：两档各 2 次批次探针，**当时脚本物化路径**下约 **39–41s 可查**（n=2≈max，**勿卖 P95**；含 console-consumer 串行开销）。Flink in/s = **sum across operators，非 source 吞吐**。**不**把 G6 Kafka-only 数字标成 G8 Doris-visible。连续 Doris 可见性见常驻 materializer（[`docs/g8-resident-materializer.md`](docs/g8-resident-materializer.md)）；steady 脚本物化为历史对照 / fallback。
 
 ### 二面深挖
 
@@ -163,4 +171,4 @@ GAMESTREAM_ROOT=/mnt/c/Users/tangy/source/repos/GameStream TIER=light bash /tmp/
 
 ### 压测
 
-仅提交实测：`bench/results/g6_*.json` / `bench/results/g8_*.json` / `bench/results/bench_*.json`。无实测时 **不编造** Lag / Checkpoint / P95。
+仅提交实测：`bench/results/g6_*.json` / `bench/results/g8_*.json` / `bench/results/bench_*.json`。无实测时 **不编造** Lag / Checkpoint / P95。G6：[`docs/g6-bench.md`](docs/g6-bench.md)。G8 分块负载：[`docs/g8-steady-bench.md`](docs/g8-steady-bench.md)。

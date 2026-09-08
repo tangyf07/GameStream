@@ -64,6 +64,7 @@ PY
 }
 
 materialize_doris() {
+  # FALLBACK/DEV ONLY — primary continuous Doris path is resident materializer
   local raw dau pay rate
   raw=$(read_kafka_ads)
   dau=$(echo "$raw" | awk '{print $1}')

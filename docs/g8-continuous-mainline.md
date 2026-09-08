@@ -1,17 +1,17 @@
 # GameStream G8 — Continuous Doris ADS Mainline
 
-**Scope:** **单一持续 Flink 作业＋脚本阶段物化 Doris**：Kafka → 清洗 / `event_id` 去重 → 日 DAU + 付费率 → upsert-kafka；再由**脚本阶段** UNIQUE KEY 物化到 Doris ADS（`ads.ads_dau_di` / `ads.ads_pay_rate_di`）。  
-把 G3 watermark/去重、G4 checkpoint、G5 kill-TM 折进**同一条** Flink job（不是离线演练后再 import）。**不是**常驻 Doris writer 服务——无脚本物化则 ADS 不更新。
+**Scope:** **单一持续 Flink 作业**（Kafka → 清洗 / `event_id` 去重 → 日 DAU + 付费率 → upsert-kafka）。把 G3 watermark/去重、G4 checkpoint、G5 kill-TM 折进**同一条** Flink job。  
+**连续 Doris ADS 可见性：** 由 **常驻 materializer** 消费 upsert-kafka → UNIQUE KEY（见 [`g8-resident-materializer.md`](g8-resident-materializer.md)）。本脚本内的 `materialize_doris` 保留为 **fallback / dev-only**（验收主路径勿再依赖「wait for expected then materialize」）。
 
 **对照：**
 
 | | G2 | G3–G5（旧） | **G8** |
 |--|----|------------|--------|
 | 运行模式 | batch + bounded Kafka | 各自独立 streaming 演练 | **一条** streaming 主流水线 |
-| Doris ADS | 有界一次性灌数 | 多数写 Kafka / 专项表 | Flink 持续 upsert-kafka；**脚本阶段**物化 `ads_*` |
+| Doris ADS | 有界一次性灌数 | 多数写 Kafka / 专项表 | Flink 持续 upsert-kafka；**常驻 materializer** 物化 `ads_*`（脚本阶段=fallback） |
 | 故障 | 无 | G5 单独 kill-TM | **同一 job** kill-TM 后继续更新 ADS |
 
-**不在范围：** 编造吞吐/Lag/P95（小规模分块负载见 G8 steady bench）；扩展 metric zoo；宣称端到端 EO-2PC；常驻 Doris materializer 服务。
+**不在范围：** 编造吞吐/Lag/P95（小规模分块负载见 G8 steady bench）；扩展 metric zoo；宣称端到端 EO-2PC。常驻 materializer 见专项文档（本页叙述 Flink 主流水线）。
 
 ## 面试叙事（持续 ADS，不是有界批）
 
@@ -32,8 +32,9 @@ Flink SQL job g8-continuous-ads  （streaming，常驻）
   • upsert-kafka → gamestream.g8.ads_dau / ads_pay_rate（ALS + PK）
         │
         ▼
-script（阶段物化，非常驻服务）：mysql INSERT → Doris UNIQUE KEY
-  ※ 无此脚本阶段则 Doris ADS 不会被本主流水线更新
+resident materializer（常驻）：upsert-kafka → mysql INSERT/DELETE → Doris UNIQUE KEY
+  ※ 主路径；acceptance = produce + SELECT only
+  ※ 脚本阶段 materialize_doris = fallback/dev only
   ※ Flink JDBC 的 MySQL `ON DUPLICATE KEY UPDATE` 会被 Doris FE 拒绝，故不直连 JDBC upsert
         │
         ▼
@@ -50,7 +51,7 @@ script（阶段物化，非常驻服务）：mysql INSERT → Doris UNIQUE KEY
 | `event_id` 去重 | Rank first-wins（与 G4/G5 相同）；dup 不抬 DAU |
 | 乱序 | 同日 OOO 仍进同一 `dt` 桶（fixture 含 `ooo_within_bound`） |
 | 迟到 / 日桶 | **日 ADS = 开窗可订正**（unbounded key-by），不是 G3 分钟窗的关窗丢弃。G3 关窗 drop 仍由 `g3_stream_semantics` 证明 |
-| Sink | Flink = upsert-kafka ALS；Doris = **脚本阶段** UNIQUE KEY plain INSERT（非常驻 writer）；**不**宣称 EO-2PC / JDBC upsert |
+| Sink | Flink = upsert-kafka ALS；Doris = **常驻 materializer** UNIQUE KEY（脚本阶段=fallback）；at-least-once；**不**宣称 EO-2PC / JDBC upsert |
 | State | `table.exec.state.ttl=1d`，parallelism=1，适配 ~7.6Gi |
 
 ## metric_id
@@ -88,7 +89,8 @@ GAMESTREAM_ROOT=/mnt/c/Users/tangy/source/repos/GameStream bash /tmp/g8.sh
 | Path | Role |
 |------|------|
 | `flink/sql/g8_continuous_ads.sql` | 持续 streaming SQL → upsert-kafka ADS |
-| `scripts/g8_continuous_mainline.sh` | 连续灌数 + 查 ADS + kill-TM + 恢复证明 |
+| `scripts/g8_continuous_mainline.sh` | 连续灌数 + 查 ADS + kill-TM + 恢复证明（脚本物化=fallback） |
+| `pipeline/doris_ads_materializer.py` / `scripts/g8_resident_materializer*` | **常驻** Doris materializer + acceptance |
 | `sql/ddl/doris_ads_g2.sql` | 复用 G2 ADS DDL（`replication_num=1`） |
 
 ## Real run

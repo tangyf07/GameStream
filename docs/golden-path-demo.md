@@ -43,7 +43,7 @@ docker exec gs-doris-fe mysql -h127.0.0.1 -P9030 -uroot -e "SHOW BACKENDS\G"
 
 ## Step 3 — 灌事件（或整段 e2e）
 
-推荐一键（含 produce + 提交 Flink + 查 Doris）：
+推荐一键（含 clear ADS + produce + 提交 Flink + 查 Doris）：
 
 ```bash
 cp scripts/e2e_g2.sh /tmp/e2e_g2.sh && sed -i 's/\r$//' /tmp/e2e_g2.sh
@@ -53,9 +53,9 @@ GAMESTREAM_ROOT=/mnt/c/Users/tangy/source/repos/GameStream bash /tmp/e2e_g2.sh
 
 薄封装（同上）：`bash scripts/demo_golden_path.sh`（内部仍调 `e2e_g2.sh`）。
 
-脚本内 produce 段（已在 e2e 里）：删/建 topic `gamestream.ods.player_events` → `simulator/generate_events.py` → `kafka-console-producer`。
+脚本内：先 **TRUNCATE/DELETE** demo ADS，再删/建 topic `gamestream.ods.player_events` → `simulator/generate_events.py` → `kafka-console-producer`。**证明来自本轮**，不依赖旧行。
 
-看：日志 `[g2] publishing N lines to gamestream.ods.player_events`。
+看：日志 `[g2] publishing N lines to gamestream.ods.player_events`；`[g2] demo ADS tables cleared`。
 
 成功信号：N ≈ `EVENTS`（默认 3000）；**先 produce，再 submit**（下一步）。
 
@@ -77,7 +77,7 @@ docker exec gs-flink-jm /opt/flink/bin/sql-client.sh \
 
 看：Flink UI `http://127.0.0.1:8081`；sql-client 退出码；日志 `[g2] sql-client exit=0`。
 
-成功信号：作业跑完（bounded）；无 jar/classpath 报错（`docker exec` 必须带 `-j`）。
+成功信号：作业跑完（bounded）；**exit=0**（`e2e_g2.sh` 在 RC≠0 时 **立即非零退出**，不假 PASS）；无 jar/classpath 报错（`docker exec` 必须带 `-j`）。
 
 ---
 
@@ -85,12 +85,12 @@ docker exec gs-flink-jm /opt/flink/bin/sql-client.sh \
 
 ```bash
 docker exec gs-doris-fe mysql -h127.0.0.1 -P9030 -uroot -e \
-  "SELECT dt, server_id, dau, metric_id FROM ads.ads_dau_di ORDER BY dt, server_id;"
+  "SELECT dt, server_id, dau, metric_id FROM ads.ads_dau_di WHERE metric_id='ads_dau_di' AND dau>0 ORDER BY dt, server_id;"
 ```
 
-看：每行 `metric_id` 列。
+看：每行 `metric_id` 与 `dau`。
 
-成功信号：至少 1 行；**`metric_id=ads_dau_di`**；`dau` > 0。
+成功信号：至少 1 行；**`metric_id=ads_dau_di` 且 `dau>0`**（不要只靠无过滤的 `COUNT(*)>0`，避免旧数据假绿）。
 
 ---
 
@@ -103,9 +103,9 @@ dt          server_id  dau  metric_id
 ...                     ... ads_dau_di
 ```
 
-看：结构同结果文件；`metric_id` 全为 `ads_dau_di`。行数/具体 dau 随 `PLAYERS/EVENTS/DAYS/日期` 会变，不要求字节级一致。
+看：结构同结果文件；`metric_id` 全为 `ads_dau_di`；`dau>0`。行数/具体 dau 随 `PLAYERS/EVENTS/DAYS/日期` 会变，不要求字节级一致。
 
-成功信号：查询非空且 metric 名正确；与结果文件同形态即可。
+成功信号：本轮查询非空且 metric 名正确；与结果文件同形态即可。
 
 ---
 
@@ -116,7 +116,8 @@ dt          server_id  dau  metric_id
 3. **先 produce 再 submit**：bounded `latest-offset` 在作业启动时截断；晚灌的事件本轮看不见。
 4. **BE Alive**：`SHOW BACKENDS`，FE 起来不等于能写。
 5. **sql-client classpath**：`docker exec` 不走 entrypoint；必须 `-j` 三个 jar。
-6. **内存**：笔记本小流量（默认 3k events）；勿同机再拉 Spark/K8s。
-7. **Flink jars 挂载**：改 compose 后可能需 `docker compose up -d --force-recreate jobmanager taskmanager`。
+6. **假 PASS**：sql-client RC≠0 必须失败；验收用 `metric_id=ads_dau_di AND dau>0`，并在跑前清空 demo ADS。
+7. **内存**：笔记本小流量（默认 3k events）；勿同机再拉 Spark/K8s。
+8. **Flink jars 挂载**：改 compose 后可能需 `docker compose up -d --force-recreate jobmanager taskmanager`。
 
 细节与拓扑：[`e2e-g2.md`](e2e-g2.md)。

@@ -1,25 +1,28 @@
 === ads_dau_di ===
 dt	server_id	dau	metric_id
-2026-09-06	1	125	ads_dau_di
-2026-09-06	2	135	ads_dau_di
-2026-09-06	3	114	ads_dau_di
-2026-09-06	4	125	ads_dau_di
-2026-09-07	1	26	ads_dau_di
-2026-09-07	2	22	ads_dau_di
-2026-09-07	3	27	ads_dau_di
-2026-09-07	4	20	ads_dau_di
+2026-09-06	1	120	ads_dau_di
+2026-09-06	2	131	ads_dau_di
+2026-09-06	3	111	ads_dau_di
+2026-09-06	4	119	ads_dau_di
+2026-09-07	1	117	ads_dau_di
+2026-09-07	2	123	ads_dau_di
+2026-09-07	3	104	ads_dau_di
+2026-09-07	4	121	ads_dau_di
+2026-09-07	88	330	ads_dau_di
 
 === ads_pay_rate_di ===
 dt	server_id	dau	pay_users	pay_rate	metric_id
-2026-09-06	1	125	17	0.136	ads_pay_rate_di
-2026-09-06	2	135	15	0.1111111111111111	ads_pay_rate_di
-2026-09-06	3	114	6	0.05263157894736842	ads_pay_rate_di
-2026-09-06	4	125	9	0.072	ads_pay_rate_di
-2026-09-07	1	26	1	0.038461538461538464	ads_pay_rate_di
-2026-09-07	2	22	1	0.045454545454545456	ads_pay_rate_di
-2026-09-07	3	27	0	0	ads_pay_rate_di
-2026-09-07	4	20	1	0.05	ads_pay_rate_di
+2026-09-06	1	120	12	0.1	ads_pay_rate_di
+2026-09-06	2	131	9	0.06870229007633588	ads_pay_rate_di
+2026-09-06	3	111	4	0.036036036036036036	ads_pay_rate_di
+2026-09-06	4	119	6	0.05042016806722689	ads_pay_rate_di
+2026-09-07	1	117	6	0.05128205128205128	ads_pay_rate_di
+2026-09-07	2	123	7	0.056910569105691054	ads_pay_rate_di
+2026-09-07	3	104	2	0.019230769230769232	ads_pay_rate_di
+2026-09-07	4	121	5	0.04132231404958678	ads_pay_rate_di
+2026-09-07	88	330	8	0.024242424242424242	ads_pay_rate_di
 
 === row counts ===
-ads_dau_di=8  ads_pay_rate_di=8
-kafka_cnt (Flink TABLEAU)=3000
+tbl	n
+ads_pay_rate_di	9
+ads_dau_di	9
