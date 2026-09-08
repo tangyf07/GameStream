@@ -1,9 +1,9 @@
 # GameStream
 
-一句话：面向游戏玩家行为的**实时指标平台**（采集→清洗→分层 ADS），给 [DataPilot](https://github.com/tangyf07/DataPilot) 问数、经 [sql-write-gate](https://github.com/tangyf07/sql-write-gate)（SQLGuard）门禁消费——不是又一个数仓作业，也不是电商订单流水。
+一句话：面向游戏玩家行为的**实时指标平台**（采集→清洗→分层 ADS），给 [DataPilot](https://github.com/tangyf07/DataPilot) 问数、经 [sql-write-gate](https://github.com/tangyf07/SQLGuard)（SQLGuard）门禁消费——不是又一个数仓作业，也不是电商订单流水。
 
 - DataPilot：https://github.com/tangyf07/DataPilot  
-- SQLGuard（sql-write-gate）：https://github.com/tangyf07/sql-write-gate  
+- SQLGuard（sql-write-gate）：https://github.com/tangyf07/SQLGuard  
 - 指标契约：[`docs/datapilot_contract.md`](docs/datapilot_contract.md) · [`config/metrics.yaml`](config/metrics.yaml)
 
 ```mermaid
