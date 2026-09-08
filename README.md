@@ -33,7 +33,7 @@ flowchart LR
 
 | 能力 | 做法 | 证明 | Scope |
 |------|------|------|-------|
-| `event_id` 去重 | Rank / DISTINCT（有界 horizon，见 Design） | [G3](docs/g3-stream-semantics.md) | drill |
+| `event_id` 去重 | Rank / DISTINCT（默认 job-lifetime state；仅 TTL 启用后才为 bounded horizon，见 Design） | [G3](docs/g3-stream-semantics.md) | drill |
 | watermark 迟到丢弃 | event-time 关窗（分钟窗） | [G3](docs/g3-stream-semantics.md) | drill |
 | checkpoint 恢复 | restart-strategy | [G4](docs/g4-checkpoint-idempotency.md) / [G5](docs/g5-fault-drill.md) | drill |
 | kill TM 不双计 | 同 job 拉回 + 幂等键 | [G5](docs/g5-fault-drill.md) | drill |
@@ -66,7 +66,7 @@ docker exec gs-doris-fe mysql -h127.0.0.1 -P9030 -uroot -e \
 | 决策 | 原因 |
 |------|------|
 | 日 ADS **不设短 `state.ttl`** | 非窗口 `GROUP BY CAST(event_time AS DATE)` 需长期 day-bucket 状态；短 TTL（如 1d）会丢掉仍可订正的日内累加。关窗改用 TUMBLE 1 DAY，G8 主流水线不用。 |
-| Rank `event_id` 去重 = **bounded horizon** | 本作业故意不设 job-level TTL；若运维为控内存启用 TTL，超窗重复可能再进入，不得宣称永久唯一。 |
+| Rank `event_id` 去重 = **job-lifetime state** | 默认无 job-level TTL，去重状态随作业生命周期增长（非“始终有界”）。仅当运维启用 TTL 后才变为 **bounded horizon**；超窗重复可能再进入，不得宣称永久唯一。 |
 | Materializer **显式 per-partition commit** | 禁止无参 `commit()`；仅在 Doris 写确认后提交已应用 offset（ALS）。脏 JSON → skip/DLQ，再推进 offset。 |
 | Retention 仅 `window_complete` | 观察窗 `max_dt >= cohort_dt+N` 才吐行，避免未完成窗低估留存；`first_seen` = 首次观测活动日，非纯注册 cohort。 |
 | Spark batch = **DWS + DAU only** | `spark/jobs/dws_ads_batch.py` 不做 retention/churn；口径见 `sql/metrics/` 与 DuckDB lite。 |
