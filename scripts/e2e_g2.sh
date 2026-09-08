@@ -55,9 +55,15 @@ if ! docker exec gs-flink-jm ls /opt/flink/usrlib/flink-sql-connector-kafka-3.0.
 fi
 docker exec gs-flink-jm ls -la /opt/flink/usrlib/
 
-echo "[g2] 3/6 Doris DDL (replication_num=1)"
+echo "[g2] 3/6 Doris DDL (replication_num=1) + clear demo ADS for this-run proof"
 docker exec -i gs-doris-fe mysql -h127.0.0.1 -P9030 -uroot < sql/ddl/doris_ads_g2.sql
 docker exec gs-doris-fe mysql -h127.0.0.1 -P9030 -uroot -e "USE ads; SHOW TABLES;"
+# Clear leftover rows so PASS cannot come from a prior run
+docker exec gs-doris-fe mysql -h127.0.0.1 -P9030 -uroot -e \
+  "TRUNCATE TABLE ads.ads_dau_di; TRUNCATE TABLE ads.ads_pay_rate_di;" 2>/dev/null \
+  || docker exec gs-doris-fe mysql -h127.0.0.1 -P9030 -uroot -e \
+    "DELETE FROM ads.ads_dau_di; DELETE FROM ads.ads_pay_rate_di;"
+echo "[g2] demo ADS tables cleared"
 
 echo "[g2] 4/6 Kafka topic + produce events"
 docker exec gs-kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 \
@@ -86,28 +92,35 @@ docker exec gs-flink-jm /opt/flink/bin/sql-client.sh \
 RC=$?
 set -e
 echo "[g2] sql-client exit=$RC"
+if [[ "$RC" -ne 0 ]]; then
+  echo "[g2] FAIL: sql-client returned rc=$RC (no false PASS)"
+  docker logs gs-flink-jm 2>&1 | tail -n 80 || true
+  exit "$RC"
+fi
 
-echo "[g2] 6/6 query ADS"
+echo "[g2] 6/6 query ADS (this-run: metric_id=ads_dau_di AND dau>0)"
 sleep 2
 mkdir -p "$(dirname "$RESULT_FILE")"
 {
-  echo "=== ads_dau_di ==="
+  echo "=== ads_dau_di (metric_id=ads_dau_di AND dau>0) ==="
   docker exec gs-doris-fe mysql -h127.0.0.1 -P9030 -uroot -e \
-    "SELECT dt, server_id, dau, metric_id FROM ads.ads_dau_di ORDER BY dt, server_id;"
+    "SELECT dt, server_id, dau, metric_id FROM ads.ads_dau_di WHERE metric_id='ads_dau_di' AND dau>0 ORDER BY dt, server_id;"
   echo
   echo "=== ads_pay_rate_di ==="
   docker exec gs-doris-fe mysql -h127.0.0.1 -P9030 -uroot -e \
     "SELECT dt, server_id, dau, pay_users, pay_rate, metric_id FROM ads.ads_pay_rate_di ORDER BY dt, server_id;"
   echo
-  echo "=== row counts ==="
+  echo "=== row counts (acceptance uses metric_id+dau, not COUNT alone) ==="
   docker exec gs-doris-fe mysql -h127.0.0.1 -P9030 -uroot -e \
-    "SELECT 'ads_dau_di' AS tbl, COUNT(*) AS n FROM ads.ads_dau_di UNION ALL SELECT 'ads_pay_rate_di', COUNT(*) FROM ads.ads_pay_rate_di;"
+    "SELECT 'ads_dau_di' AS tbl, COUNT(*) AS n FROM ads.ads_dau_di WHERE metric_id='ads_dau_di' AND dau>0
+     UNION ALL SELECT 'ads_pay_rate_di', COUNT(*) FROM ads.ads_pay_rate_di;"
 } | tee "$RESULT_FILE"
 
-DAU_N=$(docker exec gs-doris-fe mysql -h127.0.0.1 -P9030 -uroot -N -e "SELECT COUNT(*) FROM ads.ads_dau_di;")
+DAU_N=$(docker exec gs-doris-fe mysql -h127.0.0.1 -P9030 -uroot -N -e \
+  "SELECT COUNT(*) FROM ads.ads_dau_di WHERE metric_id='ads_dau_di' AND dau>0;")
 if [[ "${DAU_N}" -lt 1 ]]; then
-  echo "[g2] FAIL: ads_dau_di empty (sql-client rc=$RC)"
+  echo "[g2] FAIL: no this-run rows with metric_id=ads_dau_di AND dau>0 (sql-client rc=$RC)"
   docker logs gs-flink-jm 2>&1 | tail -n 80 || true
   exit 2
 fi
-echo "[g2] OK: ads_dau_di rows=$DAU_N (saved $RESULT_FILE)"
+echo "[g2] OK: ads_dau_di rows=$DAU_N with metric_id=ads_dau_di AND dau>0 (saved $RESULT_FILE)"
