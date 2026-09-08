@@ -31,13 +31,13 @@ flowchart LR
 
 ## Guarantees
 
-| 能力 | 做法 | 证明 |
-|------|------|------|
-| `event_id` 去重 | Rank / DISTINCT（有界 horizon，见 Design） | [G3](docs/g3-stream-semantics.md) |
-| watermark 迟到丢弃 | event-time 关窗（分钟窗） | [G3](docs/g3-stream-semantics.md) |
-| checkpoint 恢复 | restart-strategy | [G4](docs/g4-checkpoint-idempotency.md) / [G5](docs/g5-fault-drill.md) |
-| kill TM 不双计 | 同 job 拉回 + 幂等键 | [G5](docs/g5-fault-drill.md) |
-| Doris ALS | 写确认后 **显式 per-partition** offset commit | [G8 materializer](docs/g8-resident-materializer.md) |
+| 能力 | 做法 | 证明 | Scope |
+|------|------|------|-------|
+| `event_id` 去重 | Rank / DISTINCT（有界 horizon，见 Design） | [G3](docs/g3-stream-semantics.md) | drill |
+| watermark 迟到丢弃 | event-time 关窗（分钟窗） | [G3](docs/g3-stream-semantics.md) | drill |
+| checkpoint 恢复 | restart-strategy | [G4](docs/g4-checkpoint-idempotency.md) / [G5](docs/g5-fault-drill.md) | drill |
+| kill TM 不双计 | 同 job 拉回 + 幂等键 | [G5](docs/g5-fault-drill.md) | drill |
+| Doris ALS | 写确认后 **显式 per-partition** offset commit | [G8 materializer](docs/g8-resident-materializer.md) | mainline/materializer |
 
 不宣称 EO-2PC；Doris = at-least-once + UNIQUE KEY。
 
@@ -76,6 +76,7 @@ docker exec gs-doris-fe mysql -h127.0.0.1 -P9030 -uroot -e \
 - G2 = 有界 E2E；G3–G5 = 独立演练；G8 持续主流水线见 docs，不在 suite required。
 - 未宣称 K8s / Spark / Iceberg 生产部署，不编造 SLA / Lag / P95。
 - lite（DuckDB，`scripts/run_all.sh`）与 Docker **同口径、不同运行时**。
+- 脏/非法 Kafka JSON 当前 skip/ignore；生产应接入 DLQ。
 - 无 G9；不扩新功能面。
 
 ## Docs
