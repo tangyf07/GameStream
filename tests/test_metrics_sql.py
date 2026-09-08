@@ -30,3 +30,10 @@ def test_ddl_ads_covers_metrics():
     ddl = (ROOT / "sql" / "ddl" / "04_ads.sql").read_text(encoding="utf-8")
     for mid in EXPECTED:
         assert mid in ddl, f"ADS DDL missing {mid}"
+
+
+def test_retention_requires_window_complete():
+    text = (METRICS_DIR / "ads_retention_nd.sql").read_text(encoding="utf-8")
+    assert "window_complete" in text
+    assert "max_dt" in text
+    assert "cohort_dt + e.n_days" in text or "cohort_dt + n_days" in text

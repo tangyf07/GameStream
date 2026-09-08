@@ -34,7 +34,8 @@ CREATE TABLE IF NOT EXISTS ads.ads_retention_nd (
     n_days          INT          NOT NULL COMMENT '1/3/7',
     cohort_size     BIGINT       REPLACE NULL_DEFAULT 0,
     retained_cnt    BIGINT       REPLACE NULL_DEFAULT 0,
-    retention_rate  DOUBLE       REPLACE,
+    retention_rate  DOUBLE       REPLACE COMMENT 'NULL/absent when observation window incomplete',
+    window_complete BOOLEAN      REPLACE NULL_DEFAULT 'true' COMMENT 'max_dt >= cohort_dt+n_days',
     metric_id       VARCHAR(64)  REPLACE DEFAULT 'ads_retention_nd',
     update_time     DATETIME     REPLACE DEFAULT CURRENT_TIMESTAMP
 )
