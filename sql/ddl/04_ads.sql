@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS ads.ads_retention_nd (
     cohort_size     BIGINT,
     retained_cnt    BIGINT,
     retention_rate  DOUBLE,
+    window_complete BOOLEAN,  -- true only when max activity dt >= cohort_dt+n_days
     metric_id       VARCHAR
 );
 

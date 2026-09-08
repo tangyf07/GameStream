@@ -29,9 +29,12 @@ CREATE TABLE IF NOT EXISTS dws.dungeon_behavior_di (
     death_cnt   BIGINT
 );
 
+-- player_first_seen: first *observed* activity per (player_id, server_id).
+-- first_dt = MIN(event dt) over all event types in the available dataset —
+-- NOT a create_role / registration-only cohort unless upstream filters.
 CREATE TABLE IF NOT EXISTS dws.player_first_seen (
     player_id         BIGINT,
     server_id         INTEGER,
-    first_dt          DATE,
-    first_event_time  TIMESTAMP
+    first_dt          DATE,              -- first observed activity day
+    first_event_time  TIMESTAMP          -- min event_time for that player/server
 );

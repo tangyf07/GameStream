@@ -5,9 +5,12 @@ Doris UNIQUE KEY tables via plain INSERT / DELETE.
 
 Semantics (honest):
   - at-least-once: Kafka offsets commit ONLY after Doris write confirmed
+  - explicit per-partition commit: only offsets successfully applied to Doris
+  - FORBIDDEN: parameterless consumer.commit() (would advance unapplied offsets)
   - idempotent upserts: UNIQUE KEY replace (duplicate upserts OK)
   - tombstone (null value) => DELETE by (dt, server_id)
   - Doris brief outage: retry without committing => no silent skip
+  - dirty JSON: invalid counter (+ optional DLQ hook); offset advanced after skip
   - NOT end-to-end EO-2PC; NOT Flink JDBC upsert (Doris FE rejects that dialect)
 """
 from __future__ import annotations
@@ -16,7 +19,7 @@ import json
 import logging
 import signal
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, datetime
 from typing import Any, Callable
 
@@ -43,6 +46,8 @@ class MaterializerConfig:
     retry_max_sec: float = 30.0
     commit_every_n: int = 1  # commit after each successful apply (safest ALS)
     auto_offset_reset: str = "earliest"
+    # Optional path for dirty JSON lines (minimal DLQ; empty = counter only)
+    dlq_path: str = ""
 
 
 class DorisWriter:
@@ -171,6 +176,33 @@ def _key_parts(key_obj: Any, val_obj: Any) -> tuple[str, int]:
     return _norm_dt(src.get("dt")), _norm_int(src.get("server_id"), "server_id")
 
 
+def build_commit_offsets(applied: dict[tuple[str, int], int]) -> dict[Any, Any]:
+    """Map (topic, partition) -> last applied offset to kafka-python commit payload.
+
+    Commits the *next* offset (last_applied + 1) per partition — never a
+    parameterless commit of the whole consumer position.
+    """
+    from kafka.structs import OffsetAndMetadata, TopicPartition
+
+    out: dict[Any, Any] = {}
+    for (topic, partition), offset in applied.items():
+        tp = TopicPartition(topic, partition)
+        # kafka-python: OffsetAndMetadata(offset, metadata) or with leader_epoch
+        try:
+            out[tp] = OffsetAndMetadata(offset + 1, "")
+        except TypeError:
+            out[tp] = OffsetAndMetadata(offset + 1, "", -1)
+    return out
+
+
+def commit_applied_offsets(consumer: Any, applied: dict[tuple[str, int], int]) -> None:
+    """Commit only successfully applied per-partition offsets. Never bare commit()."""
+    if not applied:
+        return
+    payload = build_commit_offsets(applied)
+    consumer.commit(offsets=payload)
+
+
 class DorisAdsMaterializer:
     def __init__(
         self,
@@ -190,6 +222,8 @@ class DorisAdsMaterializer:
             "commits": 0,
             "retries": 0,
             "errors": 0,
+            "invalid_json": 0,
+            "skipped_dirty": 0,
         }
 
     def request_stop(self, *_args) -> None:
@@ -216,8 +250,45 @@ class DorisAdsMaterializer:
             request_timeout_ms=30000,
         )
 
+    def _record_dirty(self, topic: str, key_raw, value_raw, err: Exception) -> None:
+        self.stats["invalid_json"] += 1
+        self.stats["skipped_dirty"] += 1
+        log.error("dirty record skipped topic=%s err=%s", topic, err)
+        path = (self.cfg.dlq_path or "").strip()
+        if not path:
+            return
+        try:
+            line = json.dumps(
+                {
+                    "topic": topic,
+                    "key_b64": None
+                    if key_raw is None
+                    else (
+                        key_raw.decode("utf-8", errors="replace")
+                        if isinstance(key_raw, (bytes, bytearray))
+                        else str(key_raw)
+                    ),
+                    "value_b64": None
+                    if value_raw is None
+                    else (
+                        value_raw.decode("utf-8", errors="replace")
+                        if isinstance(value_raw, (bytes, bytearray))
+                        else str(value_raw)
+                    ),
+                    "error": str(err),
+                },
+                ensure_ascii=False,
+            )
+            with open(path, "a", encoding="utf-8") as f:
+                f.write(line + "\n")
+        except Exception as dlq_err:
+            log.warning("DLQ append failed: %s", dlq_err)
+
     def apply_message(self, topic: str, key_raw: bytes | None, value_raw: bytes | None) -> str:
-        """Apply one upsert-kafka record. Returns action label. Raises on Doris failure."""
+        """Apply one upsert-kafka record. Returns action label. Raises on Doris failure.
+
+        Raises json.JSONDecodeError / ValueError on dirty payload (caller may skip).
+        """
         key_obj = _decode_json(key_raw) if key_raw else None
         val_obj = _decode_json(value_raw)
 
@@ -265,9 +336,11 @@ class DorisAdsMaterializer:
         while not self._stop:
             try:
                 return self.apply_message(topic, key_raw, value_raw)
+            except (json.JSONDecodeError, UnicodeDecodeError) as e:
+                # Dirty JSON: do not spin; caller marks handled + may commit offset
+                self._record_dirty(topic, key_raw, value_raw, e)
+                return f"SKIP dirty {topic}"
             except Exception as e:
-                # parse / schema errors should not spin forever on same poison? 
-                # For honesty: still don't commit; log and re-raise after classifying.
                 msg = str(e).lower()
                 transient = any(
                     x in msg
@@ -293,9 +366,10 @@ class DorisAdsMaterializer:
                 )
                 self.stats["retries"] += 1
                 self.stats["errors"] += 1
-                if not transient and isinstance(e, (ValueError, TypeError, json.JSONDecodeError, KeyError)):
-                    log.error("non-transient apply error topic=%s err=%s", topic, e)
-                    raise
+                if not transient and isinstance(e, (ValueError, TypeError, KeyError)):
+                    # Schema/poison (non-JSON): count + skip like dirty JSON
+                    self._record_dirty(topic, key_raw, value_raw, e)
+                    return f"SKIP dirty {topic}"
                 log.warning(
                     "Doris apply failed (will retry, offset NOT committed): %s; sleep=%.1fs",
                     e,
@@ -305,6 +379,46 @@ class DorisAdsMaterializer:
                 time.sleep(delay)
                 delay = min(self.cfg.retry_max_sec, delay * 2)
         raise RuntimeError("stopped during retry")
+
+    def process_poll_batch(
+        self,
+        batch: dict[Any, list[Any]],
+    ) -> dict[tuple[str, int], int]:
+        """Apply one consumer.poll() batch.
+
+        Returns map (topic, partition) -> last successfully handled offset.
+        Offsets for records that fail Doris (transient, until success) are not
+        included — caller must not commit them.
+
+        Crash / stop mid-batch: only offsets already returned (applied) are
+        eligible for commit; unapplied remain for replay.
+        """
+        applied: dict[tuple[str, int], int] = {}
+        pending_since_commit = 0
+
+        for _tp, records in batch.items():
+            for msg in records:
+                if self._stop:
+                    return applied
+                topic = msg.topic
+                partition = msg.partition
+                offset = msg.offset
+                action = self._apply_with_retry(topic, msg.key, msg.value)
+                # Success or intentional dirty skip => eligible to commit this offset
+                key = (topic, partition)
+                applied[key] = offset
+                pending_since_commit += 1
+                log.info(
+                    "applied %s topic=%s part=%s off=%s",
+                    action,
+                    topic,
+                    partition,
+                    offset,
+                )
+                if pending_since_commit >= self.cfg.commit_every_n:
+                    # Caller commits; we only track. Mid-batch commit is done by run loop.
+                    pending_since_commit = 0
+        return applied
 
     def run_forever(self) -> None:
         signal.signal(signal.SIGINT, self.request_stop)
@@ -322,7 +436,9 @@ class DorisAdsMaterializer:
         )
 
         consumer = self._make_consumer()
-        pending = 0
+        # Accumulated applied offsets since last commit (per partition)
+        applied_pending: dict[tuple[str, int], int] = {}
+        handled_since_commit = 0
         try:
             while not self._stop:
                 try:
@@ -337,13 +453,19 @@ class DorisAdsMaterializer:
                 if not batch:
                     continue
 
-                # Apply all records; on failure retry the failing record without committing.
+                # Apply record-by-record so a Doris failure does not advance that offset.
                 for _tp, records in batch.items():
                     for msg in records:
                         if self._stop:
                             break
-                        action = self._apply_with_retry(msg.topic, msg.key, msg.value)
-                        pending += 1
+                        try:
+                            action = self._apply_with_retry(msg.topic, msg.key, msg.value)
+                        except RuntimeError:
+                            # stopped during retry — do not mark offset applied
+                            break
+                        key = (msg.topic, msg.partition)
+                        applied_pending[key] = msg.offset
+                        handled_since_commit += 1
                         log.info(
                             "applied %s topic=%s part=%s off=%s",
                             action,
@@ -351,18 +473,20 @@ class DorisAdsMaterializer:
                             msg.partition,
                             msg.offset,
                         )
-                        if pending >= self.cfg.commit_every_n:
-                            consumer.commit()
+                        if handled_since_commit >= self.cfg.commit_every_n:
+                            commit_applied_offsets(consumer, applied_pending)
                             self.stats["commits"] += 1
-                            pending = 0
-                if pending > 0:
-                    consumer.commit()
+                            applied_pending = {}
+                            handled_since_commit = 0
+                if applied_pending and not self._stop:
+                    commit_applied_offsets(consumer, applied_pending)
                     self.stats["commits"] += 1
-                    pending = 0
+                    applied_pending = {}
+                    handled_since_commit = 0
         finally:
             try:
-                if pending > 0:
-                    consumer.commit()
+                if applied_pending:
+                    commit_applied_offsets(consumer, applied_pending)
                     self.stats["commits"] += 1
             except Exception as e:
                 log.warning("final commit skipped: %s", e)
@@ -393,4 +517,5 @@ def config_from_env(env: dict[str, str] | None = None) -> MaterializerConfig:
         retry_max_sec=float(e.get("G8_MAT_RETRY_MAX", "30")),
         commit_every_n=int(e.get("G8_MAT_COMMIT_EVERY", "1")),
         auto_offset_reset=e.get("G8_MAT_OFFSET_RESET", "earliest"),
+        dlq_path=e.get("G8_MAT_DLQ_PATH", ""),
     )

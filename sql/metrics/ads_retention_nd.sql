@@ -1,11 +1,24 @@
 -- metric_id: ads_retention_nd
--- 口径: cohort_日新增(first_seen)在 day+N 仍有行为的玩家 / cohort 规模; N in (1,3,7)
+-- 口径: cohort 日新增在 day+N 仍有行为的玩家 / cohort 规模; N in (1,3,7)
+--
+-- first_seen / cohort_dt 定义:
+--   dws.player_first_seen.first_dt = MIN(dt) over all observed events for
+--   (player_id, server_id) in the available dataset — first *observed* activity
+--   day, NOT a registration-only / create_role-only cohort unless upstream
+--   filters to that event type.
+--
+-- window_complete (RetailDW-aligned):
+--   Observation window for N-day retention requires max activity dt >=
+--   cohort_dt + N. If incomplete, do NOT emit a row (avoids understated rates).
 WITH cohorts AS (
     SELECT player_id, server_id, first_dt AS cohort_dt
     FROM dws.player_first_seen
 ),
 activity AS (
     SELECT DISTINCT player_id, server_id, dt FROM dws.player_behavior_di
+),
+bounds AS (
+    SELECT MAX(dt) AS max_dt FROM dws.player_behavior_di
 ),
 exploded AS (
     SELECT c.cohort_dt, c.server_id, c.player_id, n.n_days
@@ -20,9 +33,13 @@ SELECT
     COUNT(DISTINCT CASE WHEN a.player_id IS NOT NULL THEN e.player_id END) AS retained_cnt,
     COUNT(DISTINCT CASE WHEN a.player_id IS NOT NULL THEN e.player_id END) * 1.0
         / NULLIF(COUNT(DISTINCT e.player_id), 0) AS retention_rate,
+    TRUE AS window_complete,
     'ads_retention_nd' AS metric_id
 FROM exploded e
+CROSS JOIN bounds b
 LEFT JOIN activity a
   ON e.player_id = a.player_id AND e.server_id = a.server_id
  AND a.dt = e.cohort_dt + e.n_days
+WHERE b.max_dt IS NOT NULL
+  AND b.max_dt >= e.cohort_dt + e.n_days
 GROUP BY e.cohort_dt, e.server_id, e.n_days;

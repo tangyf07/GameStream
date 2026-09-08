@@ -186,7 +186,9 @@ def step_dws(con: duckdb.DuckDBPyConnection, paths: dict) -> None:
         GROUP BY dt, server_id, dungeon_id
         """
     )
-    # New players (first create_role or first ever event)
+    # first_seen: first *observed* activity day per (player_id, server_id).
+    # first_dt = MIN(dt) over ALL event types in the dataset — NOT registration-
+    # only / create_role-only unless upstream filters to that event_type.
     con.execute(
         """
         CREATE OR REPLACE TABLE dws.player_first_seen AS
@@ -227,7 +229,8 @@ def step_ads(con: duckdb.DuckDBPyConnection, paths: dict) -> None:
         """
     )
 
-    # Retention N-day (1/3/7) based on first_seen cohort
+    # Retention N-day (1/3/7) based on first_seen cohort.
+    # window_complete: only emit when max activity dt >= cohort_dt + n_days.
     con.execute(
         """
         CREATE OR REPLACE TABLE ads.ads_retention_nd AS
@@ -238,6 +241,9 @@ def step_ads(con: duckdb.DuckDBPyConnection, paths: dict) -> None:
         activity AS (
             SELECT DISTINCT player_id, server_id, dt
             FROM dws.player_behavior_di
+        ),
+        bounds AS (
+            SELECT MAX(dt) AS max_dt FROM dws.player_behavior_di
         ),
         exploded AS (
             SELECT c.cohort_dt, c.server_id, c.player_id, n.n_days
@@ -254,12 +260,16 @@ def step_ads(con: duckdb.DuckDBPyConnection, paths: dict) -> None:
                  ELSE COUNT(DISTINCT CASE WHEN a.player_id IS NOT NULL THEN e.player_id END) * 1.0
                       / COUNT(DISTINCT e.player_id)
             END AS retention_rate,
+            TRUE AS window_complete,
             'ads_retention_nd' AS metric_id
         FROM exploded e
+        CROSS JOIN bounds b
         LEFT JOIN activity a
           ON e.player_id = a.player_id
          AND e.server_id = a.server_id
          AND a.dt = e.cohort_dt + e.n_days
+        WHERE b.max_dt IS NOT NULL
+          AND b.max_dt >= e.cohort_dt + e.n_days
         GROUP BY e.cohort_dt, e.server_id, e.n_days
         """
     )
