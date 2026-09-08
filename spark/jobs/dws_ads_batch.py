@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
 """
-Spark batch: DWD parquet → DWS / ADS (backfill & retention/churn).
+Spark batch: DWD parquet → player-day DWS + DAU ADS (backfill / local check).
 
-Runnable with local[*] if pyspark is installed. Same 口径 as DuckDB local_runner
-and sql/metrics/*.sql.
+This job currently materializes:
+  - dws_player_behavior_di (player-day aggregates)
+  - ads_dau_di
+
+It does **not** implement retention or churn. Those live in sql/metrics/*.sql
+and the DuckDB local_runner ADS path — do not treat this script as a full
+metric zoo.
 """
 from __future__ import annotations
 
@@ -15,7 +20,9 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser()
+    ap = argparse.ArgumentParser(
+        description="Spark DWD→DWS/DAU batch (no retention/churn in this job)"
+    )
     ap.add_argument("--dwd", default=str(ROOT / "data" / "dwd" / "player_events_clean.parquet"))
     ap.add_argument("--out", default=str(ROOT / "data" / "spark_out"))
     args = ap.parse_args()
@@ -29,7 +36,7 @@ def main() -> int:
             "Local demo already covered by DuckDB pipeline/local_runner.py",
             file=sys.stderr,
         )
-        return 0  # soft-skip, not a hard failure for lite portfolio
+        return 0  # soft-skip
 
     spark = (
         SparkSession.builder.master("local[*]")

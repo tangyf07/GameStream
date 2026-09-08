@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "gamestream"
 version = "0.1.0"
-description = "Game player behavior realtime lakehouse — NetEase interview portfolio"
+description = "Realtime game-player behavior lakehouse: Kafka → Flink → Doris ADS, with DuckDB local path"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
